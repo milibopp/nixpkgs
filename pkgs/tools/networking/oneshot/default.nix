@@ -18,7 +18,7 @@ buildGoModule rec {
 
   meta = with lib; {
     description = "A first-come-first-serve single-fire HTTP server";
-    homepage = https://github.com/raphaelreyna/oneshot;
+    homepage = "https://github.com/raphaelreyna/oneshot";
     license = licenses.mit;
     maintainers = with maintainers; [ edibopp ];
     platforms = platforms.linux;
