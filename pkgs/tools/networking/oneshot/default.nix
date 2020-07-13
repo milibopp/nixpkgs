@@ -21,6 +21,6 @@ buildGoModule rec {
     homepage = "https://github.com/raphaelreyna/oneshot";
     license = licenses.mit;
     maintainers = with maintainers; [ edibopp ];
-    platforms = platforms.linux;
+    platforms = platforms.all;
   };
 }
