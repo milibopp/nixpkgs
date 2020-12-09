@@ -2,16 +2,16 @@
 
 buildPythonPackage rec {
   pname = "hidapi";
-  version = "0.10.0.post1";
+  version = "0.10.1";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "27c04d42a7187becf7a8309d4846aa4f235ac8b7dafd758335b109f5cbd3b962";
+    sha256 = "a1170b18050bc57fae3840a51084e8252fd319c0fc6043d68c8501deb0e25846";
   };
 
   propagatedBuildInputs =
     stdenv.lib.optionals stdenv.isLinux [ libusb1 udev ] ++
-    stdenv.lib.optionals stdenv.isDarwin [ darwin.IOKit darwin.apple_sdk.frameworks.CoreFoundation ] ++
+    stdenv.lib.optionals stdenv.isDarwin (with darwin.apple_sdk.frameworks; [ AppKit CoreFoundation IOKit ]) ++
     [ cython ];
 
   # Fix the USB backend library lookup

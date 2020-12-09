@@ -1,14 +1,14 @@
 { stdenv, lib, fetchurl, unzip, glib, systemd, nss, nspr, gtk3-x11, pango,
-atk, cairo, gdk-pixbuf, xorg, xorg_sys_opengl, utillinux, alsaLib, dbus, at-spi2-atk,
+atk, cairo, gdk-pixbuf, xorg, xorg_sys_opengl, util-linux, alsaLib, dbus, at-spi2-atk,
 cups, vivaldi-ffmpeg-codecs, libpulseaudio, at-spi2-core }:
 
 stdenv.mkDerivation rec {
   pname = "exodus";
-  version = "20.11.10";
+  version = "20.12.4";
 
   src = fetchurl {
     url = "https://downloads.exodus.io/releases/${pname}-linux-x64-${version}.zip";
-    sha256 = "1a7qrh5mdkqpz5cpk5jdq0s2cfrvn7ja76r5cmhs70ba1xnzd8rq";
+    sha256 = "1j1iqmcbwfj72l7g83ah701bipas9cqwazyhh0af5hp2ckj9nmmf";
   };
 
   sourceRoot = ".";
@@ -51,7 +51,7 @@ stdenv.mkDerivation rec {
       xorg.libXrender
       xorg.libXtst
       xorg_sys_opengl
-      utillinux
+      util-linux
       xorg.libXrandr
       xorg.libXScrnSaver
       alsaLib

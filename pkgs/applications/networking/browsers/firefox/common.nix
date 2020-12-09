@@ -23,7 +23,7 @@
 , ffmpegSupport ? true
 , gtk3Support ? true, gtk2, gtk3, wrapGAppsHook
 , waylandSupport ? true, libxkbcommon
-# LTO is disabled since it caused segfaults on wayland see https://github.com/NixOS/nixpkgs/issues/10142
+# LTO is disabled since it caused segfaults on wayland see https://github.com/NixOS/nixpkgs/issues/101429
 , ltoSupport ? false, overrideCC, buildPackages
 , gssSupport ? true, kerberos
 , pipewireSupport ? waylandSupport && webrtcSupport, pipewire
@@ -118,6 +118,7 @@ buildStdenv.mkDerivation ({
 
   patches = [
     ./env_var_for_system_dir.patch
+    ./no-buildconfig-ffx76.patch
   ] ++
 
   # there are two flavors of pipewire support
@@ -386,4 +387,6 @@ buildStdenv.mkDerivation ({
 
   # on aarch64 this is also required
   dontUpdateAutotoolsGnuConfigScripts = true;
+
+  requiredSystemFeatures = [ "big-parallel" ];
 })

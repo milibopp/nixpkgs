@@ -38,6 +38,7 @@ brennanfee/vim-gui-position
 bronson/vim-trailing-whitespace
 brooth/far.vim
 buoto/gotests-vim
+camspiers/lens.vim
 carlitux/deoplete-ternjs
 ccarpita/rtorrent-syntax-file
 cespare/vim-toml
@@ -48,11 +49,14 @@ chrisbra/CheckAttach
 chrisbra/csv.vim
 chrisbra/NrrwRgn
 chrisbra/Recover.vim
+chrisbra/SudoEdit.vim
 chrisbra/unicode.vim
 chrisgeo/sparkup
 chriskempson/base16-vim
+ChristianChiarulli/nvcode-color-schemes.vim
 christoomey/vim-sort-motion
 christoomey/vim-tmux-navigator
+chuling/ci_dark
 ckarnell/antonys-macro-repeater
 cloudhead/neovim-fuzzy
 CoatiSoftware/vim-sourcetrail
@@ -92,6 +96,7 @@ eagletmt/ghcmod-vim
 eagletmt/neco-ghc
 easymotion/vim-easymotion
 editorconfig/editorconfig-vim
+edwinb/idris2-vim
 ehamberg/vim-cute-python
 eikenb/acp
 elixir-editors/vim-elixir
@@ -103,8 +108,8 @@ enricobacis/vim-airline-clock
 ensime/ensime-vim
 ervandew/supertab
 esneider/YUNOcommit.vim
+euclidianAce/BetterLua.vim
 euclio/vim-markdown-composer
-fannheyward/coc-markdownlint
 farmergreg/vim-lastplace
 fatih/vim-go
 fcpg/vim-osc52
@@ -116,6 +121,7 @@ flazz/vim-colorschemes
 floobits/floobits-neovim
 freitass/todo.txt-vim
 frigoeu/psc-ide-vim
+fruit-in/vim-nong-theme
 fsharp/vim-fsharp
 fszymanski/deoplete-emoji
 garbas/vim-snipmate
@@ -157,13 +163,13 @@ hsanson/vim-android
 hsitz/VimOrganizer
 hugolgst/vimsence
 iamcco/coc-spell-checker
-iamcco/coc-vimlsp
 ianks/vim-tsx
 idanarye/vim-merginal
 idris-hackers/idris-vim
 Inazuma110/deoplete-greek
 inkarkat/vim-SyntaxRange
 int3/vim-extradite
+Iron-E/nvim-highlite
 itchyny/calendar.vim
 itchyny/lightline.vim
 itchyny/thumbnail.vim
@@ -194,7 +200,7 @@ jonbri/vim-colorstepper
 jonsmithers/vim-html-template-literals
 joonty/vim-xdebug
 joshdick/onedark.vim
-jpalardy/vim-slime
+jpalardy/vim-slime@main
 jparise/vim-graphql
 jparise/vim-phabricator
 jreybert/vimagit
@@ -232,6 +238,7 @@ kassio/neoterm
 kbenzie/vim-spirv
 kchmck/vim-coffee-script
 KeitaNakamura/neodark.vim
+keith/investigate.vim
 keith/swift.vim
 kien/rainbow_parentheses.vim
 knubie/vim-kitty-navigator
@@ -243,6 +250,8 @@ kristijanhusak/vim-carbon-now-sh
 kristijanhusak/vim-dirvish-git
 kristijanhusak/vim-hybrid-material
 kshenoy/vim-signature
+kyazdani42/nvim-tree.lua
+kyazdani42/nvim-web-devicons
 lambdalisue/vim-gista
 lambdalisue/vim-manpager
 lambdalisue/vim-pager
@@ -370,6 +379,7 @@ nixprime/cpsm
 NLKNguyen/papercolor-theme
 noc7c9/vim-iced-coffee-script
 norcalli/nvim-terminal.lua
+npxbr/glow.nvim
 ntpeters/vim-better-whitespace
 numirias/semshi
 nvie/vim-flake8
@@ -394,6 +404,7 @@ osyo-manga/vim-over
 osyo-manga/vim-textobj-multiblock
 osyo-manga/vim-watchdogs
 overcache/NeoSolarized
+p00f/nvim-ts-rainbow
 pangloss/vim-javascript
 parsonsmatt/intero-neovim
 pearofducks/ansible-vim
@@ -406,6 +417,7 @@ ponko2/deoplete-fish
 posva/vim-vue
 powerman/vim-plugin-AnsiEsc
 PProvost/vim-ps1
+prabirshrestha/async.vim
 prabirshrestha/asyncomplete.vim
 prabirshrestha/vim-lsp
 preservim/nerdcommenter
@@ -435,15 +447,20 @@ rhysd/git-messenger.vim
 rhysd/vim-clang-format
 rhysd/vim-grammarous
 rhysd/vim-operator-surround
+RishabhRD/nvim-lsputils
+RishabhRD/popfix
 rodjek/vim-puppet
 romainl/vim-cool
+romainl/vim-qf
 roman/golden-ratio
 romgrk/barbar.nvim
+romgrk/nvim-treesitter-context
 ron89/thesaurus_query.vim
 roxma/nvim-cm-racer
 roxma/nvim-completion-manager
 roxma/nvim-yarp
 roxma/vim-tmux-clipboard
+RRethy/vim-hexokinase
 RRethy/vim-illuminate
 rust-lang/rust.vim
 ryanoasis/vim-devicons
@@ -486,6 +503,7 @@ slashmili/alchemist.vim
 sodapopcan/vim-twiggy
 solarnz/arcanist.vim
 sonph/onehalf
+steelsojka/completion-buffers
 stefandtw/quickfix-reflector.vim
 stephpy/vim-yaml
 sunaku/vim-dasht
@@ -509,6 +527,7 @@ thirtythreeforty/lessspace.vim
 thosakwe/vim-flutter
 tiagofumo/vim-nerdtree-syntax-highlight
 tikhomirov/vim-glsl
+tjdevries/nlua.nvim
 tmhedberg/SimpylFold
 tmsvg/pear-tree
 tmux-plugins/vim-tmux
@@ -562,6 +581,7 @@ udalov/kotlin-vim
 ujihisa/neco-look
 unblevable/quick-scope
 urbit/hoon.vim
+Valloric/MatchTagAlways
 Valodim/deoplete-notmuch
 vhda/verilog_systemverilog.vim
 vigoux/LanguageTool.nvim
