@@ -1,102 +1,119 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, pythonRelaxDepsHook
-, hatchling
-# propagated
-, httpx
-, pydantic
-, typing-extensions
-, anyio
-, distro
-, sniffio
-, tqdm
-# optional
-, numpy
-, pandas
-, pandas-stubs
-# tests
-, pytestCheckHook
-, pytest-asyncio
-, pytest-mock
-, respx
-, dirty-equals
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pythonAtLeast,
+  pythonOlder,
+
+  # build-system
+  hatchling,
+  hatch-fancy-pypi-readme,
+
+  # dependencies
+  anyio,
+  distro,
+  httpx,
+  jiter,
+  pydantic,
+  sniffio,
+  tqdm,
+  typing-extensions,
+
+  numpy,
+  pandas,
+  pandas-stubs,
+  websockets,
+
+  # check deps
+  pytestCheckHook,
+  dirty-equals,
+  inline-snapshot,
+  nest-asyncio,
+  pytest-asyncio,
+  pytest-mock,
+  respx,
 }:
 
 buildPythonPackage rec {
   pname = "openai";
-  version = "1.7.1";
+  version = "1.63.0";
   pyproject = true;
 
-
-  disabled = pythonOlder "3.7.1";
+  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "openai";
     repo = "openai-python";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-NXZ+7gDA3gMGSrmgceHxcR45LrXdazXbYuhcoUsNXew=";
+    tag = "v${version}";
+    hash = "sha256-QR9zFBOIWQCzutOUPzAdm3xhu0aIt5XoyQc5cTciYXw=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     hatchling
-    pythonRelaxDepsHook
+    hatch-fancy-pypi-readme
   ];
 
-  pythonRelaxDeps = [
-    # https://github.com/openai/openai-python/issues/921
-    "anyio"
-  ];
-
-  propagatedBuildInputs = [
-    httpx
-    pydantic
+  dependencies = [
     anyio
     distro
+    httpx
+    jiter
+    pydantic
     sniffio
     tqdm
-  ] ++ lib.optionals (pythonOlder "3.8") [
     typing-extensions
-  ];
+  ] ++ optional-dependencies.realtime;
 
-  passthru.optional-dependencies = {
+  optional-dependencies = {
     datalib = [
       numpy
       pandas
       pandas-stubs
     ];
+    realtime = [
+      websockets
+    ];
   };
 
-  pythonImportsCheck = [
-    "openai"
-  ];
+  pythonImportsCheck = [ "openai" ];
 
   nativeCheckInputs = [
     pytestCheckHook
+    dirty-equals
+    inline-snapshot
+    nest-asyncio
     pytest-asyncio
     pytest-mock
     respx
-    dirty-equals
   ];
 
   pytestFlagsArray = [
-    "-W" "ignore::DeprecationWarning"
+    "-W"
+    "ignore::DeprecationWarning"
   ];
 
-  OPENAI_API_KEY = "sk-foo";
+  disabledTests =
+    [
+      # Tests make network requests
+      "test_copy_build_request"
+      "test_basic_attribute_access_works"
+    ]
+    ++ lib.optionals (pythonAtLeast "3.13") [
+      # RuntimeWarning: coroutine method 'aclose' of 'AsyncStream._iter_events' was never awaited
+      "test_multi_byte_character_multiple_chunks"
+    ];
 
   disabledTestPaths = [
-    # makes network requests
-    "tests/test_client.py"
+    # Test makes network requests
     "tests/api_resources"
   ];
 
   meta = with lib; {
     description = "Python client library for the OpenAI API";
     homepage = "https://github.com/openai/openai-python";
-    changelog = "https://github.com/openai/openai-python/releases/tag/v${version}";
+    changelog = "https://github.com/openai/openai-python/blob/v${version}/CHANGELOG.md";
     license = licenses.mit;
     maintainers = with maintainers; [ malo ];
+    mainProgram = "openai";
   };
 }

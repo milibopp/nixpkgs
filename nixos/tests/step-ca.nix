@@ -16,7 +16,7 @@ import ./make-test-python.nix ({ pkgs, ... }:
           { config, pkgs, ... }: {
             services.step-ca = {
               enable = true;
-              address = "0.0.0.0";
+              address = "[::]";
               port = 8443;
               openFirewall = true;
               intermediatePasswordFile = "${test-certificates}/intermediate-password-file";
@@ -62,6 +62,24 @@ import ./make-test-python.nix ({ pkgs, ... }:
             };
           };
 
+        caclientcaddy =
+          { config, pkgs, ... }: {
+            security.pki.certificateFiles = [ "${test-certificates}/root_ca.crt" ];
+
+            networking.firewall.allowedTCPPorts = [ 80 443 ];
+
+            services.caddy = {
+              enable = true;
+              virtualHosts."caclientcaddy".extraConfig = ''
+                respond "Welcome to Caddy!"
+
+                tls caddy@example.org {
+                  ca https://caserver:8443/acme/acme/directory
+                }
+              '';
+            };
+          };
+
         catester = { config, pkgs, ... }: {
           security.pki.certificateFiles = [ "${test-certificates}/root_ca.crt" ];
         };
@@ -71,7 +89,16 @@ import ./make-test-python.nix ({ pkgs, ... }:
       ''
         catester.start()
         caserver.wait_for_unit("step-ca.service")
+        caserver.wait_until_succeeds("journalctl -o cat -u step-ca.service | grep '${pkgs.step-ca.version}'")
+
         caclient.wait_for_unit("acme-finished-caclient.target")
         catester.succeed("curl https://caclient/ | grep \"Welcome to nginx!\"")
+
+        caclientcaddy.wait_for_unit("caddy.service")
+
+        # It's hard to know when caddy has finished the ACME
+        # dance with step-ca, so we keep trying to curl
+        # until succeess.
+        catester.wait_until_succeeds("curl https://caclientcaddy/ | grep \"Welcome to Caddy!\"")
       '';
   })

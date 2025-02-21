@@ -1,25 +1,29 @@
-{ lib
-, stdenv
-, fetchzip
-, jre
-, copyDesktopItems
-, makeDesktopItem
+{
+  lib,
+  stdenv,
+  fetchzip,
+  jre,
+  copyDesktopItems,
+  makeDesktopItem,
 }:
 
 let
   throwSystem = throw "Unsupported system: ${stdenv.system}";
-  platform = {
-    "x86_64-linux" = "linux-x86-64";
-  }.${stdenv.system} or throwSystem;
+  platform =
+    {
+      "x86_64-linux" = "linux-x86-64";
+    }
+    .${stdenv.system} or throwSystem;
 
-in stdenv.mkDerivation rec {
+in
+stdenv.mkDerivation rec {
   pname = "weasis";
-  version = "4.2.1";
+  version = "4.5.1";
 
   # Their build instructions indicate to use the packaging script
   src = fetchzip {
     url = "https://github.com/nroduit/Weasis/releases/download/v${version}/weasis-native.zip";
-    hash = "sha256-HDlylpe8cHZRaIXndfGh6XmUn8o2PQB1Av7hLCp679U=";
+    hash = "sha256-aGoTSOZ1W8JHQ0+FcJ9RZ47A1LfXJOoGNmVDiUd9zxE=";
     stripRoot = false;
   };
 
@@ -72,8 +76,11 @@ in stdenv.mkDerivation rec {
     homepage = "https://weasis.org";
     # Using changelog from releases as it is more accurate
     changelog = "https://github.com/nroduit/Weasis/releases/tag/v${version}";
-    license = with lib.licenses; [ asl20 epl20 ];
-    maintainers = [ lib.maintainers.wolfangaukang ];
+    license = with lib.licenses; [
+      asl20
+      epl20
+    ];
+    maintainers = [ ];
     platforms = [ "x86_64-linux" ];
     mainProgram = "Weasis";
   };

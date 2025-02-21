@@ -1,13 +1,14 @@
-{ stdenv
-, lib
-, substituteAll
-, meson
-, ninja
-, pkg-config
-, wrapGAppsHook4
-, gssdp_1_6
-, gtk4
-, libsoup_3
+{
+  stdenv,
+  lib,
+  replaceVars,
+  meson,
+  ninja,
+  pkg-config,
+  wrapGAppsHook4,
+  gssdp_1_6,
+  gtk4,
+  libsoup_3,
 }:
 
 stdenv.mkDerivation rec {
@@ -17,8 +18,7 @@ stdenv.mkDerivation rec {
   patches = [
     # Allow building tools separately from the library.
     # This is needed to break the depenency cycle.
-    (substituteAll {
-      src = ./standalone-tools.patch;
+    (replaceVars ./standalone-tools.patch {
       inherit version;
     })
   ];
@@ -42,6 +42,7 @@ stdenv.mkDerivation rec {
 
   meta = with lib; {
     description = "Device Sniffer tool based on GSSDP framework";
+    mainProgram = "gssdp-device-sniffer";
     homepage = "http://www.gupnp.org/";
     license = licenses.lgpl2Plus;
     maintainers = gssdp_1_6.meta.maintainers;

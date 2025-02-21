@@ -1,76 +1,66 @@
-{ lib
-, buildPythonPackage
-, cython
-, email-validator
-, fetchFromGitHub
-, pytest-mock
-, pytestCheckHook
-, python-dotenv
-, pythonOlder
-, setuptools
-, typing-extensions
-, libxcrypt
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  cython,
+  setuptools,
+
+  # dependencies
+  typing-extensions,
+
+  # optional-dependencies
+  python-dotenv,
+  email-validator,
+
+  # tests
+  distutils,
+  pytest-mock,
+  pytest7CheckHook,
+  writableTmpDirAsHomeHook,
 }:
 
 buildPythonPackage rec {
   pname = "pydantic";
-  version = "1.10.13";
+  version = "1.10.21";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "pydantic";
     repo = "pydantic";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-ruDVcCLPVuwIkHOjYVuKOoP3hHHr7ItIY55Y6hUgR74=";
+    tag = "v${version}";
+    hash = "sha256-0kwqJsay+4xh+jgDStNciRPJmuqm8GzA+6ble4K4HuI=";
   };
 
-  nativeBuildInputs = [
-    setuptools
+  build-system = [
     cython
+    setuptools
   ];
 
-  buildInputs = lib.optionals (pythonOlder "3.9") [
-    libxcrypt
-  ];
+  dependencies = [ typing-extensions ];
 
-  propagatedBuildInputs = [
-    typing-extensions
-  ];
-
-  passthru.optional-dependencies = {
-    dotenv = [
-      python-dotenv
-    ];
-    email = [
-      email-validator
-    ];
+  optional-dependencies = {
+    dotenv = [ python-dotenv ];
+    email = [ email-validator ];
   };
 
   nativeCheckInputs = [
+    distutils
     pytest-mock
-    pytestCheckHook
-  ] ++ lib.flatten (lib.attrValues passthru.optional-dependencies);
-
-  pytestFlagsArray = [
-    # https://github.com/pydantic/pydantic/issues/4817
-    "-W" "ignore::pytest.PytestReturnNotNoneWarning"
-  ];
-
-  preCheck = ''
-    export HOME=$(mktemp -d)
-  '';
+    pytest7CheckHook
+    writableTmpDirAsHomeHook
+  ] ++ lib.flatten (lib.attrValues optional-dependencies);
 
   enableParallelBuilding = true;
 
   pythonImportsCheck = [ "pydantic" ];
 
-  meta = with lib; {
+  meta = {
     description = "Data validation and settings management using Python type hinting";
     homepage = "https://github.com/pydantic/pydantic";
     changelog = "https://github.com/pydantic/pydantic/blob/v${version}/HISTORY.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ wd15 ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ wd15 ];
   };
 }

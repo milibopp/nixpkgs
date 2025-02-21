@@ -1,15 +1,24 @@
-{ lib, buildKodiAddon, fetchFromGitHub, signals, inputstream-adaptive, inputstreamhelper, requests, myconnpy }:
+{
+  lib,
+  buildKodiAddon,
+  fetchFromGitHub,
+  signals,
+  inputstream-adaptive,
+  inputstreamhelper,
+  requests,
+  myconnpy,
+}:
 
 buildKodiAddon rec {
   pname = "netflix";
   namespace = "plugin.video.netflix";
-  version = "1.23.1";
+  version = "1.23.3";
 
   src = fetchFromGitHub {
     owner = "CastagnaIT";
     repo = namespace;
     rev = "v${version}";
-    sha256 = "sha256-ZY59I3RR/gl24XqZiBkenHM/D4tW/5ZyE4UngtvODYQ=";
+    hash = "sha256-tve7E7dK60BIHETdwt9hD3/5eEdJB6c6rhw4oDoLAKM=";
   };
 
   propagatedBuildInputs = [

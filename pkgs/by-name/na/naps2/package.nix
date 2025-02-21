@@ -1,4 +1,5 @@
 { lib
+, stdenv
 , buildDotnetModule
 , dotnetCorePackages
 , fetchFromGitHub
@@ -11,21 +12,33 @@
 
 buildDotnetModule rec {
   pname = "naps2";
-  version = "7.2.2";
+  version = "7.4.3";
 
   src = fetchFromGitHub {
     owner = "cyanfish";
     repo = "naps2";
     rev = "v${version}";
-    hash = "sha256-ikt0gl/pNjEaENj1WRLdn/Zvx349FAGpzSV62Y2GwXI=";
+    hash = "sha256-/qSfxGHcCSoNp516LFYWgEL4csf8EKgtSffBt1C02uE=";
   };
 
   projectFile = "NAPS2.App.Gtk/NAPS2.App.Gtk.csproj";
-  nugetDeps = ./deps.nix;
+  nugetDeps = ./deps.json;
 
   executables = [ "naps2" ];
 
-  dotnet-sdk = dotnetCorePackages.sdk_8_0;
+  dotnet-sdk =
+    with dotnetCorePackages;
+    sdk_8_0
+    // {
+      inherit
+        (combinePackages [
+          sdk_8_0
+          sdk_6_0-bin
+        ])
+        packages
+        targetPackages
+        ;
+    };
   dotnet-runtime = dotnetCorePackages.runtime_8_0;
   selfContainedBuild = true;
   runtimeDeps = [
@@ -47,12 +60,14 @@ buildDotnetModule rec {
   '';
 
   meta = {
-    description = "Scan documents to PDF and more, as simply as possible.";
-    homepage = "www.naps2.com";
+    description = "Scan documents to PDF and more, as simply as possible";
+    homepage = "https://www.naps2.com";
+    changelog = "https://github.com/cyanfish/naps2/blob/master/CHANGELOG.md";
     license = lib.licenses.gpl2Plus;
     maintainers = with lib.maintainers; [ eliandoran ];
     platforms = lib.platforms.linux;
     mainProgram = "naps2";
+    broken = stdenv.hostPlatform.isAarch64;  # Google.Protobuf.Tools dependency fails to build.
   };
 
 }

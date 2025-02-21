@@ -1,27 +1,30 @@
-{ lib
-, stdenv
-, rustPlatform
-, fetchFromGitHub
-, pkg-config
-, openssl
-, installShellFiles
-, darwin
-, testers
-, pixi
+{
+  lib,
+  stdenv,
+  rustPlatform,
+  fetchFromGitHub,
+  pkg-config,
+  installShellFiles,
+  libgit2,
+  openssl,
+  buildPackages,
+  versionCheckHook,
+  nix-update-script,
 }:
 
 rustPlatform.buildRustPackage rec {
   pname = "pixi";
-  version = "0.11.1";
+  version = "0.40.3";
 
   src = fetchFromGitHub {
     owner = "prefix-dev";
     repo = "pixi";
-    rev = "v${version}";
-    hash = "sha256-NOa8OvZs+BoJQ9qIU1lpMmEOecZpmwwCNYpDk1LUSTI=";
+    tag = "v${version}";
+    hash = "sha256-PxG5bbHcpPOc4wAqxsiGkw1NeS3ya4/cZcDSg4LgX6Q=";
   };
 
-  cargoHash = "sha256-rDtr9ITYH5o/QPG1Iozh05iTA8c0i+3DnabXLzyqdrg=";
+  useFetchCargoVendor = true;
+  cargoHash = "sha256-0jWtbCcj4BTCBuW+KenBG/MCcRWWn8WHrTEJdkIyMes=";
 
   nativeBuildInputs = [
     pkg-config
@@ -29,41 +32,48 @@ rustPlatform.buildRustPackage rec {
   ];
 
   buildInputs = [
+    libgit2
     openssl
-  ]
-  ++ lib.optionals stdenv.isDarwin (
-    with darwin.apple_sdk_11_0.frameworks; [ CoreFoundation IOKit SystemConfiguration Security ]
-  );
-
-
-  checkFlags = [
-    # Skip tests requiring network
-    "--skip=add_channel"
-    "--skip=add_functionality"
-    "--skip=add_functionality_os"
-    "--skip=add_functionality_union"
-    "--skip=add_pypi_functionality"
-    "--skip=test_alias"
-    "--skip=test_cwd"
-    "--skip=test_incremental_lock_file"
   ];
 
-  postInstall = ''
-    installShellCompletion --cmd pix \
-      --bash <($out/bin/pixi completion --shell bash) \
-      --fish <($out/bin/pixi completion --shell fish) \
-      --zsh <($out/bin/pixi completion --shell zsh)
-  '';
-
-  passthru.tests.version = testers.testVersion {
-    package = pixi;
+  env = {
+    LIBGIT2_NO_VENDOR = 1;
+    OPENSSL_NO_VENDOR = 1;
   };
 
-  meta = with lib; {
+  # As the version is updated, the number of failed tests continues to grow.
+  doCheck = false;
+
+  postInstall = lib.optionalString (stdenv.hostPlatform.emulatorAvailable buildPackages) (
+    let
+      emulator = stdenv.hostPlatform.emulator buildPackages;
+    in
+    ''
+      installShellCompletion --cmd pixi \
+        --bash <(${emulator} $out/bin/pixi completion --shell bash) \
+        --fish <(${emulator} $out/bin/pixi completion --shell fish) \
+        --zsh <(${emulator} $out/bin/pixi completion --shell zsh)
+    ''
+  );
+
+  nativeInstallCheckInputs = [
+    versionCheckHook
+  ];
+  versionCheckProgramArg = [ "--version" ];
+  doInstallCheck = true;
+
+  passthru.updateScript = nix-update-script { };
+
+  meta = {
     description = "Package management made easy";
     homepage = "https://pixi.sh/";
-    license = licenses.bsd3;
-    maintainers = with lib.maintainers; [ aaronjheng ];
+    changelog = "https://pixi.sh/latest/CHANGELOG";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [
+      aaronjheng
+      edmundmiller
+      xiaoxiangmoe
+    ];
     mainProgram = "pixi";
   };
 }

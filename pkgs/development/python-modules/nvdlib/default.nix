@@ -1,16 +1,17 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pytestCheckHook
-, pythonOlder
-, requests
-, responses
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  pythonOlder,
+  requests,
+  responses,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "nvdlib";
-  version = "0.7.6";
+  version = "0.7.9";
   pyproject = true;
 
   disabled = pythonOlder "3.8";
@@ -18,26 +19,20 @@ buildPythonPackage rec {
   src = fetchFromGitHub {
     owner = "Vehemont";
     repo = "nvdlib";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-p2xx+QC0P30FR+nMiFW/PoINbcTM49ufADW9B9u2WxI=";
+    tag = "v${version}";
+    hash = "sha256-D4IzY6CZm9jxjupif9VnxI3uPlnhe1/Vsjhs2XX5v1c=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
-  propagatedBuildInputs = [
-    requests
-  ];
+  propagatedBuildInputs = [ requests ];
 
   nativeCheckInputs = [
     pytestCheckHook
     responses
   ];
 
-  pythonImportsCheck = [
-    "nvdlib"
-  ];
+  pythonImportsCheck = [ "nvdlib" ];
 
   meta = with lib; {
     description = "Module to interact with the National Vulnerability CVE/CPE API";

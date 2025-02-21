@@ -1,45 +1,43 @@
-{ lib
-, aiomisc-pytest
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, pytestCheckHook
-, pamqp
-, yarl
-, poetry-core
+{
+  lib,
+  aiomisc-pytest,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pythonOlder,
+  pytestCheckHook,
+  pamqp,
+  yarl,
+  poetry-core,
 }:
 
 buildPythonPackage rec {
   pname = "aiormq";
-  version = "6.7.6";
-  format = "pyproject";
+  version = "6.8.1";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
+  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "mosquito";
     repo = "aiormq";
-    # https://github.com/mosquito/aiormq/issues/189
-    rev = "72c44f55313fc14e2a760a45a09831237b64c48d";
-    hash = "sha256-IIlna8aQY6bIA7OZHthfvMFFWnf3DDRBP1uiFCD7+Do=";
+    tag = version;
+    hash = "sha256-3+PoDB5Owy8BWBUisX0i1mV8rqs5K9pBFQwup8vKxlg=";
   };
 
   nativeBuildInputs = [
     poetry-core
   ];
 
+  pythonRelaxDeps = [ "pamqp" ];
+
   propagatedBuildInputs = [
     pamqp
     yarl
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  checkInputs = [
-    aiomisc-pytest
-  ];
+  checkInputs = [ aiomisc-pytest ];
 
   # Tests attempt to connect to a RabbitMQ server
   disabledTestPaths = [
@@ -47,9 +45,7 @@ buildPythonPackage rec {
     "tests/test_connection.py"
   ];
 
-  pythonImportsCheck = [
-    "aiormq"
-  ];
+  pythonImportsCheck = [ "aiormq" ];
 
   meta = with lib; {
     description = "AMQP 0.9.1 asynchronous client library";

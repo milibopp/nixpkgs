@@ -1,24 +1,41 @@
-{ lib
-, cmake
-, darwin
-, fetchFromGitHub
-, nix-update-script
-, stdenv
+{
+  lib,
+  autoAddDriverRunpath,
+  cmake,
+  darwin,
+  fetchFromGitHub,
+  nix-update-script,
+  stdenv,
 
-, config
-, cudaSupport ? config.cudaSupport
-, cudaPackages ? { }
+  config,
+  cudaSupport ? config.cudaSupport,
+  cudaPackages ? { },
 
-, rocmSupport ? config.rocmSupport
-, rocmPackages ? { }
+  rocmSupport ? config.rocmSupport,
+  rocmPackages ? { },
 
-, openclSupport ? false
-, clblast
+  openclSupport ? false,
+  clblast,
 
-, blasSupport ? !rocmSupport && !cudaSupport
-, openblas
-, pkg-config
-, metalSupport ? stdenv.isDarwin && stdenv.isAarch64 && !openclSupport
+  blasSupport ? builtins.all (x: !x) [
+    cudaSupport
+    metalSupport
+    openclSupport
+    rocmSupport
+    vulkanSupport
+  ],
+  blas,
+
+  pkg-config,
+  metalSupport ? stdenv.hostPlatform.isDarwin && stdenv.hostPlatform.isAarch64 && !openclSupport,
+  vulkanSupport ? false,
+  rpcSupport ? false,
+  curl,
+  shaderc,
+  vulkan-headers,
+  vulkan-loader,
+  ninja,
+  git,
 }:
 
 let
@@ -26,114 +43,168 @@ let
   # otherwise we get libstdc++ errors downstream.
   # cuda imposes an upper bound on the gcc version, e.g. the latest gcc compatible with cudaPackages_11 is gcc11
   effectiveStdenv = if cudaSupport then cudaPackages.backendStdenv else stdenv;
+  inherit (lib)
+    cmakeBool
+    cmakeFeature
+    optionals
+    optionalString
+    ;
+
+  darwinBuildInputs =
+    with darwin.apple_sdk.frameworks;
+    [
+      Accelerate
+      CoreVideo
+      CoreGraphics
+    ]
+    ++ optionals metalSupport [ MetalKit ];
+
+  cudaBuildInputs = with cudaPackages; [
+    cuda_cccl # <nv/target>
+
+    # A temporary hack for reducing the closure size, remove once cudaPackages
+    # have stopped using lndir: https://github.com/NixOS/nixpkgs/issues/271792
+    cuda_cudart
+    libcublas
+  ];
+
+  rocmBuildInputs = with rocmPackages; [
+    clr
+    hipblas
+    rocblas
+  ];
+
+  vulkanBuildInputs = [
+    shaderc
+    vulkan-headers
+    vulkan-loader
+  ];
 in
 effectiveStdenv.mkDerivation (finalAttrs: {
   pname = "llama-cpp";
-  version = "1848";
+  version = "4731";
 
   src = fetchFromGitHub {
     owner = "ggerganov";
     repo = "llama.cpp";
-    rev = "refs/tags/b${finalAttrs.version}";
-    hash = "sha256-KuomiKU9c06Ux/ZcqctFdPQykGtjDzArN+tElPJVQ60=";
+    tag = "b${finalAttrs.version}";
+    hash = "sha256-XB7TI1/Ui9BGdsD5TVH5MMZalgEGquW9wYcAhxgAcP0=";
+    leaveDotGit = true;
+    postFetch = ''
+      git -C "$out" rev-parse --short HEAD > $out/COMMIT
+      find "$out" -name .git -print0 | xargs -0 rm -rf
+    '';
   };
 
   postPatch = ''
-    substituteInPlace ./ggml-metal.m \
-      --replace '[bundle pathForResource:@"ggml-metal" ofType:@"metal"];' "@\"$out/bin/ggml-metal.metal\";"
+    # Workaround for local-ai package which overrides this package to an older llama-cpp
+    if [ -f ./ggml/src/ggml-metal.m ]; then
+      substituteInPlace ./ggml/src/ggml-metal.m \
+        --replace-fail '[bundle pathForResource:@"ggml-metal" ofType:@"metal"];' "@\"$out/bin/ggml-metal.metal\";"
+    fi
+
+    if [ -f ./ggml/src/ggml-metal/ggml-metal.m ]; then
+      substituteInPlace ./ggml/src/ggml-metal/ggml-metal.m \
+        --replace-fail '[bundle pathForResource:@"ggml-metal" ofType:@"metal"];' "@\"$out/bin/ggml-metal.metal\";"
+    fi
+
+    substituteInPlace ./scripts/build-info.sh \
+      --replace-fail 'build_number="0"' 'build_number="${finalAttrs.version}"' \
+      --replace-fail 'build_commit="unknown"' "build_commit=\"$(cat COMMIT)\""
   '';
 
-  nativeBuildInputs = [ cmake ] ++ lib.optionals blasSupport [ pkg-config ] ++ lib.optionals cudaSupport [
-    cudaPackages.cuda_nvcc
+  nativeBuildInputs =
+    [
+      cmake
+      ninja
+      pkg-config
+      git
+    ]
+    ++ optionals cudaSupport [
+      cudaPackages.cuda_nvcc
+      autoAddDriverRunpath
+    ];
 
-    # TODO: Replace with autoAddDriverRunpath
-    # once https://github.com/NixOS/nixpkgs/pull/275241 has been merged
-    cudaPackages.autoAddOpenGLRunpathHook
-  ];
+  buildInputs =
+    optionals effectiveStdenv.hostPlatform.isDarwin darwinBuildInputs
+    ++ optionals cudaSupport cudaBuildInputs
+    ++ optionals openclSupport [ clblast ]
+    ++ optionals rocmSupport rocmBuildInputs
+    ++ optionals blasSupport [ blas ]
+    ++ optionals vulkanSupport vulkanBuildInputs
+    ++ [ curl ];
 
-  buildInputs = lib.optionals effectiveStdenv.isDarwin
-    (with darwin.apple_sdk.frameworks; [
-      Accelerate
-      CoreGraphics
-      CoreVideo
-      Foundation
-    ])
-  ++ lib.optionals metalSupport (with darwin.apple_sdk.frameworks; [
-    MetalKit
-  ])
-  ++ lib.optionals cudaSupport (with cudaPackages; [
-    cuda_cccl.dev # <nv/target>
+  cmakeFlags =
+    [
+      # -march=native is non-deterministic; override with platform-specific flags if needed
+      (cmakeBool "GGML_NATIVE" false)
+      (cmakeBool "LLAMA_BUILD_SERVER" true)
+      (cmakeBool "LLAMA_CURL" true)
+      (cmakeBool "BUILD_SHARED_LIBS" true)
+      (cmakeBool "GGML_BLAS" blasSupport)
+      (cmakeBool "GGML_CLBLAST" openclSupport)
+      (cmakeBool "GGML_CUDA" cudaSupport)
+      (cmakeBool "GGML_HIP" rocmSupport)
+      (cmakeBool "GGML_METAL" metalSupport)
+      (cmakeBool "GGML_RPC" rpcSupport)
+      (cmakeBool "GGML_VULKAN" vulkanSupport)
+    ]
+    ++ optionals cudaSupport [
+      (cmakeFeature "CMAKE_CUDA_ARCHITECTURES" cudaPackages.flags.cmakeCudaArchitecturesString)
+    ]
+    ++ optionals rocmSupport [
+      (cmakeFeature "CMAKE_C_COMPILER" "hipcc")
+      (cmakeFeature "CMAKE_CXX_COMPILER" "hipcc")
 
-    # A temporary hack for reducing the closure size, remove once cudaPackages
-    # have stopped using lndir: https://github.com/NixOS/nixpkgs/issues/271792
-    cuda_cudart.dev
-    cuda_cudart.lib
-    cuda_cudart.static
-    libcublas.dev
-    libcublas.lib
-    libcublas.static
-  ]) ++ lib.optionals rocmSupport [
-    rocmPackages.clr
-    rocmPackages.hipblas
-    rocmPackages.rocblas
-  ] ++ lib.optionals openclSupport [
-    clblast
-  ] ++ lib.optionals blasSupport [
-    openblas
-  ];
+      # Build all targets supported by rocBLAS. When updating search for TARGET_LIST_ROCM
+      # in https://github.com/ROCmSoftwarePlatform/rocBLAS/blob/develop/CMakeLists.txt
+      # and select the line that matches the current nixpkgs version of rocBLAS.
+      # Should likely use `rocmPackages.clr.gpuTargets`.
+      "-DAMDGPU_TARGETS=gfx803;gfx900;gfx906:xnack-;gfx908:xnack-;gfx90a:xnack+;gfx90a:xnack-;gfx940;gfx941;gfx942;gfx1010;gfx1012;gfx1030;gfx1100;gfx1101;gfx1102"
+    ]
+    ++ optionals metalSupport [
+      (cmakeFeature "CMAKE_C_FLAGS" "-D__ARM_FEATURE_DOTPROD=1")
+      (cmakeBool "LLAMA_METAL_EMBED_LIBRARY" true)
+    ]
+    ++ optionals rpcSupport [
+      # This is done so we can move rpc-server out of bin because llama.cpp doesn't
+      # install rpc-server in their install target.
+      "-DCMAKE_SKIP_BUILD_RPATH=ON"
+    ];
 
-  cmakeFlags = [
-    "-DLLAMA_NATIVE=OFF"
-    "-DLLAMA_BUILD_SERVER=ON"
-  ]
-  ++ lib.optionals metalSupport [
-    "-DCMAKE_C_FLAGS=-D__ARM_FEATURE_DOTPROD=1"
-    "-DLLAMA_METAL=ON"
-  ]
-  ++ lib.optionals cudaSupport [
-    "-DLLAMA_CUBLAS=ON"
-  ]
-  ++ lib.optionals rocmSupport [
-    "-DLLAMA_HIPBLAS=1"
-    "-DCMAKE_C_COMPILER=hipcc"
-    "-DCMAKE_CXX_COMPILER=hipcc"
-    "-DCMAKE_POSITION_INDEPENDENT_CODE=ON"
-  ]
-  ++ lib.optionals openclSupport [
-    "-DLLAMA_CLBLAST=ON"
-  ]
-  ++ lib.optionals blasSupport [
-    "-DLLAMA_BLAS=ON"
-    "-DLLAMA_BLAS_VENDOR=OpenBLAS"
-  ];
+  # upstream plans on adding targets at the cmakelevel, remove those
+  # additional steps after that
+  postInstall =
+    ''
+      # Match previous binary name for this package
+      ln -sf $out/bin/llama-cli $out/bin/llama
 
-  installPhase = ''
-    runHook preInstall
-
-    mkdir -p $out/bin
-
-    for f in bin/*; do
-      test -x "$f" || continue
-      cp "$f" $out/bin/llama-cpp-"$(basename "$f")"
-    done
-
-    ${lib.optionalString metalSupport "cp ./bin/ggml-metal.metal $out/bin/ggml-metal.metal"}
-
-    runHook postInstall
-  '';
+      mkdir -p $out/include
+      cp $src/include/llama.h $out/include/
+    ''
+    + optionalString rpcSupport "cp bin/rpc-server $out/bin/llama-rpc-server";
 
   passthru.updateScript = nix-update-script {
     attrPath = "llama-cpp";
-    extraArgs = [ "--version-regex" "b(.*)" ];
+    extraArgs = [
+      "--version-regex"
+      "b(.*)"
+    ];
   };
 
   meta = with lib; {
-    description = "Port of Facebook's LLaMA model in C/C++";
+    description = "Inference of Meta's LLaMA model (and others) in pure C/C++";
     homepage = "https://github.com/ggerganov/llama.cpp/";
     license = licenses.mit;
-    mainProgram = "llama-cpp-main";
-    maintainers = with maintainers; [ dit7ya elohmeier ];
-    broken = (effectiveStdenv.isDarwin && effectiveStdenv.isx86_64) || lib.count lib.id [openclSupport blasSupport rocmSupport cudaSupport] == 0;
+    mainProgram = "llama";
+    maintainers = with maintainers; [
+      dit7ya
+      elohmeier
+      philiptaron
+      xddxdd
+    ];
     platforms = platforms.unix;
+    badPlatforms = optionals (cudaSupport || openclSupport) lib.platforms.darwin;
+    broken = (metalSupport && !effectiveStdenv.hostPlatform.isDarwin);
   };
 })

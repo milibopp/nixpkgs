@@ -1,16 +1,41 @@
-{ stdenv, lib, buildPythonPackage, fetchPypi, cctools, which }:
+{
+  stdenv,
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  fetchpatch,
+  setuptools,
+  cctools,
+  which,
+}:
 
 buildPythonPackage rec {
   pname = "miniupnpc";
-  version = "2.0.2";
-  format = "setuptools";
+  version = "2.3.0";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "0ca94zz7sr2x57j218aypxqcwkr23n8js30f3yrvvqbg929nr93y";
+    hash = "sha256-AvnUqth2igy4xGvDC+C6jOwUi2005NDvmfrbec+JrzE=";
   };
 
-  nativeBuildInputs = lib.optionals stdenv.isDarwin [ cctools which ];
+  patches = [
+    # TODO: remove this patch when updating to the next release
+    (fetchpatch {
+      url = "https://github.com/miniupnp/miniupnp/commit/f79ae6738d10af633844dcf3ecd9c587e8f9508d.patch";
+      stripLen = 1;
+      hash = "sha256-g+D9Cw5knTy5a7M0wAQkw8MZ6iZR8RQUT6A0WAc6Q5U=";
+    })
+  ];
+
+  build-system = [
+    setuptools
+  ];
+
+  nativeBuildInputs = lib.optionals stdenv.hostPlatform.isDarwin [
+    cctools
+    which
+  ];
 
   meta = with lib; {
     description = "miniUPnP client";

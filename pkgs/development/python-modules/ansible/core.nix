@@ -1,38 +1,43 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, pythonRelaxDepsHook
-, installShellFiles
-, ansible
-, cryptography
-, importlib-resources
-, jinja2
-, junit-xml
-, lxml
-, ncclient
-, packaging
-, paramiko
-, ansible-pylibssh
-, passlib
-, pexpect
-, psutil
-, pycrypto
-, pyyaml
-, requests
-, resolvelib
-, scp
-, windowsSupport ? false, pywinrm
-, xmltodict
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pythonOlder,
+  installShellFiles,
+  docutils,
+  setuptools,
+  ansible,
+  cryptography,
+  importlib-resources,
+  jinja2,
+  junit-xml,
+  lxml,
+  ncclient,
+  packaging,
+  paramiko,
+  ansible-pylibssh,
+  passlib,
+  pexpect,
+  psutil,
+  pycrypto,
+  pyyaml,
+  requests,
+  resolvelib,
+  scp,
+  windowsSupport ? false,
+  pywinrm,
+  xmltodict,
 }:
 
 buildPythonPackage rec {
   pname = "ansible-core";
-  version = "2.16.2";
+  version = "2.18.1";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-5KtVnn5SWxxvmQhPyoc7sBR3XV7L6EW3wHuOnWycBIs=";
+    pname = "ansible_core";
+    inherit version;
+    hash = "sha256-FMrB+Su9rogcsGFu3esXkl6MtQfkhgh5deckUz2d508=";
   };
 
   # ansible_connection is already wrapped, so don't pass it through
@@ -41,48 +46,59 @@ buildPythonPackage rec {
   postPatch = ''
     substituteInPlace lib/ansible/executor/task_executor.py \
       --replace "[python," "["
+
+    patchShebangs --build packaging/cli-doc/build.py
+
+    SETUPTOOLS_PATTERN='"setuptools[0-9 <>=.,]+"'
+    PYPROJECT=$(cat pyproject.toml)
+    if [[ "$PYPROJECT" =~ $SETUPTOOLS_PATTERN ]]; then
+      echo "setuptools replace: ''${BASH_REMATCH[0]}"
+      echo "''${PYPROJECT//''${BASH_REMATCH[0]}/'"setuptools"'}" > pyproject.toml
+    else
+      exit 2
+    fi
   '';
 
   nativeBuildInputs = [
     installShellFiles
-  ] ++ lib.optionals (pythonOlder "3.10") [
-    pythonRelaxDepsHook
+    docutils
   ];
 
-  propagatedBuildInputs = [
-    # depend on ansible instead of the other way around
-    ansible
-    # from requirements.txt
-    cryptography
-    jinja2
-    packaging
-    passlib
-    pyyaml
-    resolvelib # This library is a PITA, since ansible requires a very old version of it
-    # optional dependencies
-    junit-xml
-    lxml
-    ncclient
-    paramiko
-    ansible-pylibssh
-    pexpect
-    psutil
-    pycrypto
-    requests
-    scp
-    xmltodict
-  ] ++ lib.optionals windowsSupport [
-    pywinrm
-  ] ++ lib.optionals (pythonOlder "3.10") [
-    importlib-resources
-  ];
+  build-system = [ setuptools ];
 
-  pythonRelaxDeps = lib.optionals (pythonOlder "3.10") [
-    "importlib-resources"
-  ];
+  dependencies =
+    [
+      # depend on ansible instead of the other way around
+      ansible
+      # from requirements.txt
+      cryptography
+      jinja2
+      packaging
+      passlib
+      pyyaml
+      resolvelib
+      # optional dependencies
+      junit-xml
+      lxml
+      ncclient
+      paramiko
+      ansible-pylibssh
+      pexpect
+      psutil
+      pycrypto
+      requests
+      scp
+      xmltodict
+    ]
+    ++ lib.optionals windowsSupport [ pywinrm ]
+    ++ lib.optionals (pythonOlder "3.10") [ importlib-resources ];
+
+  pythonRelaxDeps = lib.optionals (pythonOlder "3.10") [ "importlib-resources" ];
 
   postInstall = ''
-    installManPage docs/man/man1/*.1
+    export HOME="$(mktemp -d)"
+    packaging/cli-doc/build.py man --output-dir=man
+    installManPage man/*
   '';
 
   # internal import errors, missing dependencies
@@ -93,6 +109,6 @@ buildPythonPackage rec {
     description = "Radically simple IT automation";
     homepage = "https://www.ansible.com";
     license = licenses.gpl3Plus;
-    maintainers = with maintainers; [ ];
+    maintainers = [ ];
   };
 }

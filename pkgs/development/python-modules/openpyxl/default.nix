@@ -1,22 +1,21 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitLab
-, pythonOlder
-
-# dependencies
-, et-xmlfile
-
-# tests
-, lxml
-, pandas
-, pillow
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  et-xmlfile,
+  fetchFromGitLab,
+  lxml,
+  pandas,
+  pillow,
+  pytest7CheckHook,
+  pythonAtLeast,
+  pythonOlder,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "openpyxl";
-  version = "3.1.2";
-  format = "setuptools";
+  version = "3.1.5";
+  pyproject = true;
 
   disabled = pythonOlder "3.7";
 
@@ -24,41 +23,51 @@ buildPythonPackage rec {
     domain = "foss.heptapod.net";
     owner = "openpyxl";
     repo = "openpyxl";
-    rev = version;
-    hash = "sha256-SWRbjA83AOLrfe6on2CSb64pH5EWXkfyYcTqWJNBEP0=";
+    rev = "refs/tags/${version}";
+    hash = "sha256-vp+TIWcHCAWlDaBcmC7w/kV7DZTZpa6463NusaJmqKo=";
   };
 
-  propagatedBuildInputs = [
-    et-xmlfile
-  ];
+  build-system = [ setuptools ];
+
+  dependencies = [ et-xmlfile ];
 
   nativeCheckInputs = [
     lxml
     pandas
     pillow
-    pytestCheckHook
+    pytest7CheckHook
   ];
 
   pytestFlagsArray = [
-    # broken since lxml 2.12; https://foss.heptapod.net/openpyxl/openpyxl/-/issues/2116
-    "--deselect=openpyxl/chart/tests/test_reader.py::test_read"
-    "--deselect=openpyxl/comments/tests/test_comment_reader.py::test_read_comments"
-    "--deselect=openpyxl/drawing/tests/test_spreadsheet_drawing.py::TestSpreadsheetDrawing::test_ignore_external_blip"
-    "--deselect=openpyxl/packaging/tests/test_manifest.py::TestManifest::test_from_xml"
-    "--deselect=openpyxl/packaging/tests/test_manifest.py::TestManifest::test_filenames"
-    "--deselect=openpyxl/packaging/tests/test_manifest.py::TestManifest::test_exts"
-    "--deselect=openpyxl/styles/tests/test_stylesheet.py::TestStylesheet::test_from_complex"
-    "--deselect=openpyxl/styles/tests/test_stylesheet.py::TestStylesheet::test_merge_named_styles"
-    "--deselect=openpyxl/styles/tests/test_stylesheet.py::TestStylesheet::test_unprotected_cell"
-    "--deselect=openpyxl/styles/tests/test_stylesheet.py::TestStylesheet::test_none_values"
-    "--deselect=openpyxl/styles/tests/test_stylesheet.py::TestStylesheet::test_rgb_colors"
-    "--deselect=openpyxl/styles/tests/test_stylesheet.py::TestStylesheet::test_named_styles"
-    "--deselect=openpyxl/workbook/external_link/tests/test_external.py::test_read_ole_link"
+    "-W"
+    "ignore::DeprecationWarning"
   ];
 
-  pythonImportsCheck = [
-    "openpyxl"
-  ];
+  disabledTests =
+    [
+      # Tests broken since lxml 2.12; https://foss.heptapod.net/openpyxl/openpyxl/-/issues/2116
+      "test_read"
+      "test_read_comments"
+      "test_ignore_external_blip"
+      "test_from_xml"
+      "test_filenames"
+      "test_exts"
+      "test_from_complex"
+      "test_merge_named_styles"
+      "test_unprotected_cell"
+      "test_none_values"
+      "test_rgb_colors"
+      "test_named_styles"
+      "test_read_ole_link"
+    ]
+    ++ lib.optionals (pythonAtLeast "3.11") [
+      "test_broken_sheet_ref"
+      "test_name_invalid_index"
+      "test_defined_names_print_area"
+      "test_no_styles"
+    ];
+
+  pythonImportsCheck = [ "openpyxl" ];
 
   meta = with lib; {
     description = "Python library to read/write Excel 2010 xlsx/xlsm files";

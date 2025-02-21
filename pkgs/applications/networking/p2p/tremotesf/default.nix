@@ -1,16 +1,17 @@
-{stdenv
-,lib
-, cmake
-, pkg-config
-, fetchFromGitHub
-, qtbase
-, qttools
-, kwidgetsaddons
-, kwindowsystem
-, fmt
-, libpsl
-, cxxopts
-, wrapQtAppsHook
+{
+  stdenv,
+  lib,
+  cmake,
+  pkg-config,
+  fetchFromGitHub,
+  qtbase,
+  qttools,
+  kwidgetsaddons,
+  kwindowsystem,
+  fmt,
+  libpsl,
+  cxxopts,
+  wrapQtAppsHook,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
@@ -45,6 +46,7 @@ stdenv.mkDerivation (finalAttrs: {
 
   meta = with lib; {
     description = "Remote GUI for transmission-daemon";
+    mainProgram = "tremotesf";
     license = licenses.gpl3Plus;
     homepage = "https://github.com/equeim/tremotesf2";
     maintainers = with maintainers; [ sochotnicky ];

@@ -1,36 +1,40 @@
-{ lib
-, aiohttp
-, platformdirs
-, buildPythonPackage
-, docutils
-, fetchFromGitHub
-, flaky
-, installShellFiles
-, packaging
-, pycurl
-, pytest-asyncio
-, pytest-httpbin
-, pytestCheckHook
-, pythonOlder
-, setuptools
-, structlog
-, tomli
-, tornado
+{
+  lib,
+  platformdirs,
+  buildPythonPackage,
+  docutils,
+  fetchFromGitHub,
+  flaky,
+  installShellFiles,
+  pycurl,
+  pytest-asyncio,
+  pytest-httpbin,
+  pytestCheckHook,
+  pythonOlder,
+  setuptools,
+  structlog,
+  tomli,
+  tornado,
+  awesomeversion,
+  packaging,
+  lxml,
 }:
 
 buildPythonPackage rec {
   pname = "nvchecker";
-  version = "2.12";
-  format = "pyproject";
+  version = "2.16";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
+  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "lilydjwg";
-    repo = pname;
-    rev = "v${version}";
-    hash = "sha256-6mhVDC2jpIIOZeoKz4AxxU7jj8dqPVBKRWupbuY/T7E=";
+    repo = "nvchecker";
+    tag = "v${version}";
+    hash = "sha256-HdL3BnjQZzKXtjhQqDst6dJH82g3BONFsGUnwzDMRDA=";
   };
+
+  build-system = [ setuptools ];
 
   nativeBuildInputs = [
     docutils
@@ -38,16 +42,11 @@ buildPythonPackage rec {
   ];
 
   propagatedBuildInputs = [
-    aiohttp
-    platformdirs
-    packaging
-    pycurl
-    setuptools
     structlog
+    platformdirs
     tornado
-  ] ++ lib.optionals (pythonOlder "3.11") [
-    tomli
-  ];
+    pycurl
+  ] ++ lib.optionals (pythonOlder "3.11") [ tomli ];
 
   __darwinAllowLocalNetworking = true;
 
@@ -67,19 +66,22 @@ buildPythonPackage rec {
     installManPage docs/_build/man/nvchecker.1
   '';
 
-  pythonImportsCheck = [
-    "nvchecker"
-  ];
+  pythonImportsCheck = [ "nvchecker" ];
 
-  pytestFlagsArray = [
-    "-m 'not needs_net'"
-  ];
+  pytestFlagsArray = [ "-m 'not needs_net'" ];
 
-  meta = with lib; {
+  optional-dependencies = {
+    # vercmp = [ pyalpm ];
+    awesomeversion = [ awesomeversion ];
+    pypi = [ packaging ];
+    htmlparser = [ lxml ];
+  };
+
+  meta = {
     description = "New version checker for software";
     homepage = "https://github.com/lilydjwg/nvchecker";
     changelog = "https://github.com/lilydjwg/nvchecker/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ marsam ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

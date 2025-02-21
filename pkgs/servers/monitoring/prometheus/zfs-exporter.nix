@@ -1,20 +1,21 @@
-{ buildGoModule
-, lib
-, fetchFromGitHub
+{
+  buildGoModule,
+  lib,
+  fetchFromGitHub,
 }:
 
 buildGoModule rec {
   pname = "zfs_exporter";
-  version = "2.3.2";
+  version = "2.3.6";
 
   src = fetchFromGitHub {
     owner = "pdf";
     repo = pname;
     rev = "v" + version;
-    hash = "sha256-JpLrCkPg0vVR0bKKHY5qf1/OD+O7yvWxS7kb7Yg3+c4=";
+    hash = "sha256-en30/vKZDlqRvQW3n5yeMwLrukObw0d+NfzmdWvfXZE=";
   };
 
-  vendorHash = "sha256-uIilESEmAxANxFOy7qvYxlF/bId/Kqh4jUspNknlhlc=";
+  vendorHash = "sha256-fhodh5EcvAX2fruwv0e9VNAti2jKa7kEDQCVSDFl48A=";
 
   ldflags = [
     "-s"
@@ -32,6 +33,7 @@ buildGoModule rec {
 
   meta = with lib; {
     description = "ZFS Exporter for the Prometheus monitoring system";
+    mainProgram = "zfs_exporter";
     homepage = "https://github.com/pdf/zfs_exporter";
     license = licenses.mit;
     maintainers = with maintainers; [ peterhoeg ];

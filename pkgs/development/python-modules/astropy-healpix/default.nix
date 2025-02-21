@@ -1,30 +1,32 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchPypi
-, numpy
-, astropy
-, astropy-extension-helpers
-, setuptools
-, setuptools-scm
-, pytestCheckHook
-, pytest-doctestplus
-, hypothesis
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchPypi,
+  numpy,
+  astropy,
+  astropy-extension-helpers,
+  setuptools,
+  setuptools-scm,
+  pytestCheckHook,
+  pytest-doctestplus,
+  hypothesis,
 }:
 
 buildPythonPackage rec {
   pname = "astropy-healpix";
-  version = "1.0.1";
+  version = "1.1.0";
   pyproject = true;
 
   src = fetchPypi {
     inherit version;
-    pname = lib.replaceStrings ["-"] ["_"] pname;
-    hash = "sha256-74k4vfcpdXw4CowXNHlNc3StAOB2f8Si+mOma+8SYkI=";
+    pname = lib.replaceStrings [ "-" ] [ "_" ] pname;
+    hash = "sha256-0YFlh6YEkYjiqi6fABJZ3j+LoVjwS5O1BruEcmQAf24=";
   };
 
   nativeBuildInputs = [
     astropy-extension-helpers
+    numpy
     setuptools
     setuptools-scm
   ];

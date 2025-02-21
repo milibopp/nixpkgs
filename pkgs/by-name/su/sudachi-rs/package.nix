@@ -1,20 +1,22 @@
-{ lib
-, rustPlatform
-, fetchFromGitHub
-, sudachidict
-, runCommand
-, sudachi-rs
+{
+  lib,
+  rustPlatform,
+  fetchFromGitHub,
+  sudachidict,
+  runCommand,
+  sudachi-rs,
+  writeScript,
 }:
 
 rustPlatform.buildRustPackage rec {
   pname = "sudachi-rs";
-  version = "0.6.7";
+  version = "0.6.10";
 
   src = fetchFromGitHub {
     owner = "WorksApplications";
     repo = "sudachi.rs";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-VzNOI6PP9sKBsNfB5yIxAI8jI8TEdM4tD49Jl/2tkSE=";
+    tag = "v${version}";
+    hash = "sha256-2sJ9diE/EjrQmFcCc4VluE4Gu4RebTYitd7zzfgj3g4=";
   };
 
   postPatch = ''
@@ -22,7 +24,8 @@ rustPlatform.buildRustPackage rec {
       --replace '"resources"' '"${placeholder "out"}/share/resources"'
   '';
 
-  cargoHash = "sha256-b2NtgHcMkimzFFuqohAo9KdSaIq6oi3qo/k8/VugyFs=";
+  useFetchCargoVendor = true;
+  cargoHash = "sha256-/VKveTtB8BbWgRBEzWBjrSrW84uFcz08cz6tZTuMMeE=";
 
   # prepare the resources before the build so that the binary can find sudachidict
   preBuild = ''
@@ -30,16 +33,26 @@ rustPlatform.buildRustPackage rec {
     install -Dm644 resources/* -t $out/share/resources
   '';
 
-  passthru.tests = {
-    # detects an error that sudachidict is not found
-    cli = runCommand "${pname}-cli-test" { } ''
-      mkdir $out
-      echo "高輪ゲートウェイ駅" | ${lib.getExe sudachi-rs} > $out/result
+  passthru = {
+    updateScript = writeScript "update.sh" ''
+      #!/usr/bin/env nix-shell
+      #!nix-shell -i bash -p nix-update
+
+      set -eu -o pipefail
+      nix-update sudachi-rs
+      nix-update --version=skip python3Packages.sudachipy
     '';
+    tests = {
+      # detects an error that sudachidict is not found
+      cli = runCommand "${pname}-cli-test" { } ''
+        mkdir $out
+        echo "高輪ゲートウェイ駅" | ${lib.getExe sudachi-rs} > $out/result
+      '';
+    };
   };
 
   meta = with lib; {
-    description = "A Japanese morphological analyzer";
+    description = "Japanese morphological analyzer";
     homepage = "https://github.com/WorksApplications/sudachi.rs";
     changelog = "https://github.com/WorksApplications/sudachi.rs/blob/${src.rev}/CHANGELOG.md";
     license = licenses.asl20;

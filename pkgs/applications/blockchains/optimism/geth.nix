@@ -1,20 +1,21 @@
-{ stdenv
-, lib
-, buildGoModule
-, fetchFromGitHub
-, libobjc
-, IOKit
+{
+  stdenv,
+  lib,
+  buildGoModule,
+  fetchFromGitHub,
+  libobjc,
+  IOKit,
 }:
 
 buildGoModule rec {
   pname = "op-geth";
-  version = "1.101305.0";
+  version = "1.101305.3";
 
   src = fetchFromGitHub {
     owner = "ethereum-optimism";
     repo = "op-geth";
     rev = "v${version}";
-    hash = "sha256-6Q36iTqYEY1sXt7K8UR8YFT/wvjzz+NzzpM5WgfhxFg=";
+    hash = "sha256-AKVwwvt77FZlm7089EeayYVRYLo7c3v6LFVpsQN68Zk=";
     fetchSubmodules = true;
   };
 
@@ -33,13 +34,18 @@ buildGoModule rec {
     "cmd/utils"
   ];
 
-  vendorHash = "sha256-lTkbdzRuWqgFl/8N0v9jH8+pVM2k87a/cQF22DqiAIE=";
+  vendorHash = "sha256-pcIydpKWZt3vwShwzGlPKGq+disdxYFOB8gxHou3mVU=";
 
   # Fix for usb-related segmentation faults on darwin
-  propagatedBuildInputs =
-    lib.optionals stdenv.isDarwin [ libobjc IOKit ];
+  propagatedBuildInputs = lib.optionals stdenv.hostPlatform.isDarwin [
+    libobjc
+    IOKit
+  ];
 
-  ldflags = [ "-s" "-w" ];
+  ldflags = [
+    "-s"
+    "-w"
+  ];
 
   meta = with lib; {
     description = "";

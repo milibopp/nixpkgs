@@ -1,47 +1,63 @@
-{ lib
-, rustPlatform
-, fetchFromGitea
-, pkg-config
-, stdenv
-, openssl
-, libiconv
-, sqlite
-, Security
-, SystemConfiguration
-, CoreFoundation
-, installShellFiles
-, asciidoctor }:
+{
+  lib,
+  rustPlatform,
+  fetchFromGitea,
+  pkg-config,
+  stdenv,
+  openssl,
+  libiconv,
+  sqlite,
+  Security,
+  SystemConfiguration,
+  CoreFoundation,
+  installShellFiles,
+  asciidoctor,
+}:
 
 rustPlatform.buildRustPackage rec {
   pname = "listenbrainz-mpd";
-  version = "2.3.2";
+  version = "2.3.8";
 
   src = fetchFromGitea {
     domain = "codeberg.org";
     owner = "elomatreb";
     repo = "listenbrainz-mpd";
     rev = "v${version}";
-    hash = "sha256-DqxE+wEHDmOmh+iJa312uAWQcg/1ApOTZNLrhGq5KmY=";
+    hash = "sha256-QBc0avci232UIxzTKlS0pjL7cCuvwAFgw6dSwdtYAtU=";
   };
 
-  cargoHash = "sha256-/fd3XIBHwJ95bwirUbMldw2cAfdF2Sv8CPxrbM4WWBI=";
+  useFetchCargoVendor = true;
+  cargoHash = "sha256-NQXXR6b1XZDihVoRNFJLXtMNjlzOIzkc4rthwx0A7AE=";
 
-  nativeBuildInputs = [ pkg-config installShellFiles asciidoctor ];
-
-  buildInputs = [ sqlite ] ++ (if stdenv.isDarwin then [
-    libiconv
-    Security
-    SystemConfiguration
-    CoreFoundation
-  ] else [
-    openssl
-  ]);
-
-  buildFeatures = [
-    "shell_completion"
-  ] ++ lib.optionals stdenv.isLinux [
-    "systemd"
+  nativeBuildInputs = [
+    pkg-config
+    installShellFiles
+    asciidoctor
   ];
+
+  buildInputs =
+    [ sqlite ]
+    ++ (
+      if stdenv.hostPlatform.isDarwin then
+        [
+          libiconv
+          Security
+          SystemConfiguration
+          CoreFoundation
+        ]
+      else
+        [
+          openssl
+        ]
+    );
+
+  buildFeatures =
+    [
+      "shell_completion"
+    ]
+    ++ lib.optionals stdenv.hostPlatform.isLinux [
+      "systemd"
+    ];
 
   postInstall = ''
     installShellCompletion \
@@ -59,5 +75,6 @@ rustPlatform.buildRustPackage rec {
     description = "ListenBrainz submission client for MPD";
     license = licenses.agpl3Only;
     maintainers = with maintainers; [ DeeUnderscore ];
+    mainProgram = "listenbrainz-mpd";
   };
 }

@@ -1,36 +1,44 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, meson
-, ninja
-, pkg-config
-, fontconfig
-, icu
-, libdrm
-, libGL
-, libinput
-, libX11
-, libXcursor
-, libxkbcommon
-, mesa
-, pixman
-, seatd
-, srm-cuarzo
-, udev
-, wayland
-, xorgproto
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  meson,
+  ninja,
+  pkg-config,
+  fontconfig,
+  icu,
+  libdrm,
+  libGL,
+  libinput,
+  libX11,
+  libXcursor,
+  libxkbcommon,
+  libgbm,
+  pixman,
+  seatd,
+  srm-cuarzo,
+  udev,
+  wayland,
+  xorgproto,
+  nix-update-script,
 }:
-stdenv.mkDerivation (self: {
+stdenv.mkDerivation (finalAttrs: {
   pname = "louvre";
-  version = "1.1.0-1";
-  rev = "v${self.version}";
-  hash = "sha256-HwvX0ykl2+4MBcIixmEknFtsB0QC4w1QDzQz1589bl0=";
+  version = "2.14.1-1";
 
   src = fetchFromGitHub {
-    inherit (self) rev hash;
     owner = "CuarzoSoftware";
     repo = "Louvre";
+    rev = "v${finalAttrs.version}";
+    hash = "sha256-fZ9lH7kfp++YONI3Kr4fJX1SsemhoJGdgz6eEeHKA6Q=";
   };
+
+  sourceRoot = "${finalAttrs.src.name}/src";
+
+  postPatch = ''
+    substituteInPlace examples/meson.build \
+      --replace-fail "/usr/local/share/wayland-sessions" "${placeholder "out"}/share/wayland-sessions"
+  '';
 
   nativeBuildInputs = [
     meson
@@ -47,7 +55,7 @@ stdenv.mkDerivation (self: {
     libX11
     libXcursor
     libxkbcommon
-    mesa
+    libgbm
     pixman
     seatd
     srm-cuarzo
@@ -56,12 +64,14 @@ stdenv.mkDerivation (self: {
     xorgproto
   ];
 
-  outputs = [ "out" "dev" ];
+  outputs = [
+    "out"
+    "dev"
+  ];
 
-  preConfigure = ''
-    # The root meson.build file is in src/
-    cd src
-  '';
+  passthru = {
+    updateScript = nix-update-script { };
+  };
 
   meta = {
     description = "C++ library for building Wayland compositors";

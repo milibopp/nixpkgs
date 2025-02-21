@@ -1,16 +1,17 @@
-{ lib
-, aiohttp
-, buildPythonPackage
-, click
-, fetchFromGitHub
-, hatchling
-, pythonOlder
-, voluptuous
+{
+  lib,
+  aiohttp,
+  buildPythonPackage,
+  click,
+  fetchFromGitHub,
+  hatchling,
+  pythonOlder,
+  voluptuous,
 }:
 
 buildPythonPackage rec {
   pname = "evohome-async";
-  version = "0.4.17";
+  version = "0.4.21";
   pyproject = true;
 
   disabled = pythonOlder "3.11";
@@ -18,13 +19,11 @@ buildPythonPackage rec {
   src = fetchFromGitHub {
     owner = "zxdavb";
     repo = "evohome-async";
-    rev = "refs/tags/${version}";
-    hash = "sha256-8Dl23U0LynNPxDpo79CmA4H8o2knU2rrtNYwDPZBVRQ=";
+    tag = version;
+    hash = "sha256-+tBqyg7E9wRC6oHq6Fv2vzIGtrHqZp8w/3x/xbacqWI=";
   };
 
-  nativeBuildInputs = [
-    hatchling
-  ];
+  nativeBuildInputs = [ hatchling ];
 
   propagatedBuildInputs = [
     aiohttp
@@ -35,9 +34,7 @@ buildPythonPackage rec {
   # Project has no tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "evohomeasync2"
-  ];
+  pythonImportsCheck = [ "evohomeasync2" ];
 
   meta = with lib; {
     description = "Python client for connecting to Honeywell's TCC RESTful API";

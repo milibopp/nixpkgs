@@ -1,9 +1,10 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, poetry-core
-, requests
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pythonOlder,
+  poetry-core,
+  requests,
 }:
 
 buildPythonPackage rec {
@@ -14,13 +15,12 @@ buildPythonPackage rec {
   disabled = pythonOlder "3.8";
 
   src = fetchPypi {
-    inherit pname version;
+    pname = "python_trovo";
+    inherit version;
     hash = "sha256-3EVSF4+nLvvM2RocNM2xz9Us5VrRRTCu/MWCcqwwikw=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  nativeBuildInputs = [ poetry-core ];
 
   propagatedBuildInputs = [ requests ];
 
@@ -30,9 +30,9 @@ buildPythonPackage rec {
   pythonImportsCheck = [ "trovoApi" ];
 
   meta = with lib; {
-    description = "A Python wrapper for the Trovo API";
+    description = "Python wrapper for the Trovo API";
     homepage = "https://codeberg.org/wolfangaukang/python-trovo";
     license = licenses.gpl3Only;
-    maintainers = with maintainers; [ wolfangaukang ];
+    maintainers = [ ];
   };
 }

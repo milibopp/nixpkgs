@@ -116,8 +116,8 @@ let
         enable = true;
       };
       metricProvider = {
-        services.bird2.enable = true;
-        services.bird2.config = ''
+        services.bird.enable = true;
+        services.bird.config = ''
           router id 127.0.0.1;
 
           protocol kernel MyObviousTestString {
@@ -177,6 +177,26 @@ let
       '';
     };
 
+    borgmatic = {
+      exporterConfig = {
+        enable = true;
+        user = "root";
+      };
+      metricProvider = {
+        services.borgmatic.enable = true;
+        services.borgmatic.settings.source_directories = [ "/home" ];
+        services.borgmatic.settings.repositories = [ { label = "local"; path = "/var/backup"; } ];
+        services.borgmatic.settings.keep_daily = 10;
+      };
+      exporterTest = ''
+        succeed("borgmatic rcreate -e none")
+        succeed("borgmatic")
+        wait_for_unit("prometheus-borgmatic-exporter.service")
+        wait_for_open_port(9996)
+        succeed("curl -sSf localhost:9996/metrics | grep 'borg_total_backups{repository=\"/var/backup\"} 1'")
+      '';
+    };
+
     collectd = {
       exporterConfig = {
         enable = true;
@@ -199,7 +219,7 @@ let
           succeed(
               'echo \'${postData}\'> /tmp/data.json'
           )
-          succeed('sed -ie "s DATE $(date +%s) " /tmp/data.json')
+          succeed('sed -i -e "s DATE $(date +%s) " /tmp/data.json')
           succeed(
               "curl -sSfH 'Content-Type: application/json' -X POST --data @/tmp/data.json localhost:9103/collectd"
           )
@@ -207,6 +227,34 @@ let
               "curl -sSf localhost:9103/metrics | grep 'collectd_testplugin_gauge{instance=\"testhost\"} 23'"
           )
         '';
+    };
+
+    deluge = {
+      exporterConfig = {
+        enable = true;
+        port = 1234;
+        listenAddress = "127.0.0.1";
+
+        delugeUser = "user";
+        delugePort = 2345;
+        delugePasswordFile = pkgs.writeText "password" "weak_password";
+      };
+      metricProvider = {
+        services.deluge.enable = true;
+        services.deluge.declarative = true;
+        services.deluge.config.daemon_port = 2345;
+        services.deluge.authFile = pkgs.writeText "authFile" ''
+        localclient:abcdef:10
+        user:weak_password:10
+        '';
+      };
+      exporterTest = ''
+        wait_for_unit("deluged.service")
+        wait_for_open_port(2345)
+        wait_for_unit("prometheus-deluge-exporter.service")
+        wait_for_open_port(1234)
+        succeed("curl -sSf http://localhost:1234 | grep 'deluge_torrents'")
+      '';
     };
 
     dnsmasq = {
@@ -218,9 +266,60 @@ let
         services.dnsmasq.enable = true;
       };
       exporterTest = ''
+        wait_for_unit("dnsmasq.service")
+        wait_for_open_port(53)
+        wait_for_file("/var/lib/dnsmasq/dnsmasq.leases")
         wait_for_unit("prometheus-dnsmasq-exporter.service")
         wait_for_open_port(9153)
         succeed("curl -sSf http://localhost:9153/metrics | grep 'dnsmasq_leases 0'")
+      '';
+    };
+
+    dnssec = {
+      exporterConfig = {
+        enable = true;
+        configuration = {
+          records = [
+            {
+              zone = "example.com";
+              record = "@";
+              type = "SOA";
+            }
+          ];
+        };
+        resolvers = [ "127.0.0.1:53" ];
+      };
+      metricProvider = {
+        services.knot = {
+          enable = true;
+          settingsFile = pkgs.writeText "knot.conf" ''
+            server:
+              listen: 127.0.0.1@53
+            template:
+              - id: default
+                storage: ${pkgs.buildEnv {
+                  name = "zones";
+                  paths = [(pkgs.writeTextDir "example.com.zone" ''
+                    @ SOA ns1.example.com. noc.example.com. 2024032401 86400 7200 3600000 172800
+                    @       NS      ns1
+                    ns1     A       192.168.0.1
+                  '')];
+                }}
+                zonefile-load: difference
+                zonefile-sync: -1
+            zone:
+              - domain: example.com
+                file: example.com.zone
+                dnssec-signing: on
+          '';
+        };
+      };
+      exporterTest = ''
+        wait_for_unit("knot.service")
+        wait_for_open_port(53)
+        wait_for_unit("prometheus-dnssec-exporter.service")
+        wait_for_open_port(9204)
+        succeed("curl -sSf http://localhost:9204/metrics | grep 'example.com'")
       '';
     };
 
@@ -257,31 +356,37 @@ let
       '';
     };
 
-    exportarr-sonarr = {
+    exportarr-sonarr = let apiKeyFile = pkgs.writeText "dummy-api-key" "eccff6a992bc2e4b88e46d064b26bb4e"; in {
       nodeName = "exportarr_sonarr";
       exporterConfig = {
         enable = true;
         url = "http://127.0.0.1:8989";
-        # testing for real data is tricky, because the api key can not be preconfigured
-        apiKeyFile = pkgs.writeText "dummy-api-key" "eccff6a992bc2e4b88e46d064b26bb4e";
+        inherit apiKeyFile;
+      };
+      metricProvider = {
+        services.sonarr = {
+          enable = true;
+          inherit apiKeyFile;
+        };
       };
       exporterTest = ''
+        wait_for_unit("sonarr.service")
+        wait_for_open_port(8989)
         wait_for_unit("prometheus-exportarr-sonarr-exporter.service")
-        wait_for_open_port(9707)
-        succeed("curl -sSf 'http://localhost:9707/metrics")
+        wait_for_open_port(9708)
+        succeed("curl -sSf http://localhost:9708/metrics | grep sonarr_series_total")
       '';
     };
 
     fastly = {
       exporterConfig = {
         enable = true;
-        tokenPath = pkgs.writeText "token" "abc123";
+        environmentFile = pkgs.writeText "fastly-exporter-env" "FASTLY_API_TOKEN=abc123";
       };
 
-      # noop: fastly's exporter can't start without first talking to fastly
-      # see: https://github.com/peterbourgon/fastly-exporter/issues/87
       exporterTest = ''
-        succeed("true");
+        wait_for_unit("prometheus-fastly-exporter.service")
+        wait_for_open_port(9118)
       '';
     };
 
@@ -399,7 +504,6 @@ let
     json = {
       exporterConfig = {
         enable = true;
-        url = "http://localhost";
         configFile = pkgs.writeText "json-exporter-conf.json" (builtins.toJSON {
           modules = {
             default = {
@@ -430,54 +534,6 @@ let
       '';
     };
 
-    kea = let
-      controlSocketPathV4 = "/run/kea/dhcp4.sock";
-      controlSocketPathV6 = "/run/kea/dhcp6.sock";
-    in
-    {
-      exporterConfig = {
-        enable = true;
-        controlSocketPaths = [
-          controlSocketPathV4
-          controlSocketPathV6
-        ];
-      };
-      metricProvider = {
-        services.kea = {
-          dhcp4 = {
-            enable = true;
-            settings = {
-              control-socket = {
-                socket-type = "unix";
-                socket-name = controlSocketPathV4;
-              };
-            };
-          };
-          dhcp6 = {
-            enable = true;
-            settings = {
-              control-socket = {
-                socket-type = "unix";
-                socket-name = controlSocketPathV6;
-              };
-            };
-          };
-        };
-      };
-
-      exporterTest = ''
-        wait_for_unit("kea-dhcp4-server.service")
-        wait_for_unit("kea-dhcp6-server.service")
-        wait_for_file("${controlSocketPathV4}")
-        wait_for_file("${controlSocketPathV6}")
-        wait_for_unit("prometheus-kea-exporter.service")
-        wait_for_open_port(9547)
-        succeed(
-            "curl --fail localhost:9547/metrics | grep 'packets_received_total'"
-        )
-      '';
-    };
-
     knot = {
       exporterConfig = {
         enable = true;
@@ -495,9 +551,6 @@ let
                 global-module: mod-stats
                 dnssec-signing: off
                 zonefile-sync: -1
-                journal-db: /var/lib/knot/journal
-                kasp-db: /var/lib/knot/kasp
-                timer-db: /var/lib/knot/timer
                 zonefile-load: difference
                 storage: ${pkgs.buildEnv {
                   name = "foo";
@@ -566,6 +619,8 @@ let
             rpcauth=bitcoinrpc:e8fe33f797e698ac258c16c8d7aadfbe$872bdb8f4d787367c26bcfd75e6c23c4f19d44a69f5d1ad329e5adf3f82710f7
             zmqpubrawblock=tcp://127.0.0.1:28332
             zmqpubrawtx=tcp://127.0.0.1:28333
+            # https://github.com/lightningnetwork/lnd/issues/9163
+            deprecatedrpc=warnings
           '';
           extraCmdlineOptions = [ "-regtest" ];
         };
@@ -727,6 +782,38 @@ let
         wait_for_open_port(9539)
         succeed(
             "curl -sSf http://localhost:9539/metrics | grep 'modemmanager_info'"
+        )
+      '';
+    };
+
+    mqtt = {
+      exporterConfig = {
+        enable = true;
+        environmentFile = pkgs.writeText "mqtt-exporter-envfile" ''
+          MQTT_PASSWORD=testpassword
+        '';
+      };
+      metricProvider = {
+        services.mosquitto = {
+          enable = true;
+          listeners = [{
+            users.exporter = {
+              acl = [ "read #" ];
+              passwordFile = pkgs.writeText "mosquitto-password" "testpassword";
+            };
+          }];
+        };
+        systemd.services.prometheus-mqtt-exporter ={
+          wants = [ "mosquitto.service" ];
+          after = [ "mosquitto.service" ];
+        };
+      };
+      exporterTest = ''
+        wait_for_unit("mosquitto.service")
+        wait_for_unit("prometheus-mqtt-exporter.service")
+        wait_for_open_port(9000)
+        succeed(
+          "curl -sSf http://localhost:9000/metrics | grep '^python_info'"
         )
       '';
     };
@@ -897,107 +984,78 @@ let
       '';
     };
 
-    openldap = {
+    node-cert = {
+      nodeName = "node_cert";
       exporterConfig = {
         enable = true;
-        ldapCredentialFile = "${pkgs.writeText "exporter.yml" ''
-          ldapUser: "cn=root,dc=example"
-          ldapPass: "notapassword"
-        ''}";
-      };
-      metricProvider = {
-        services.openldap = {
-          enable = true;
-          settings.children = {
-            "cn=schema".includes = [
-              "${pkgs.openldap}/etc/schema/core.ldif"
-              "${pkgs.openldap}/etc/schema/cosine.ldif"
-              "${pkgs.openldap}/etc/schema/inetorgperson.ldif"
-              "${pkgs.openldap}/etc/schema/nis.ldif"
-            ];
-            "olcDatabase={1}mdb" = {
-              attrs = {
-                objectClass = [ "olcDatabaseConfig" "olcMdbConfig" ];
-                olcDatabase = "{1}mdb";
-                olcDbDirectory = "/var/db/openldap";
-                olcSuffix = "dc=example";
-                olcRootDN = {
-                  # cn=root,dc=example
-                  base64 = "Y249cm9vdCxkYz1leGFtcGxl";
-                };
-                olcRootPW = {
-                  path = "${pkgs.writeText "rootpw" "notapassword"}";
-                };
-              };
-            };
-            "olcDatabase={2}monitor".attrs = {
-              objectClass = [ "olcDatabaseConfig" ];
-              olcDatabase = "{2}monitor";
-              olcAccess = [ "to dn.subtree=cn=monitor by users read" ];
-            };
-          };
-          declarativeContents."dc=example" = ''
-            dn: dc=example
-            objectClass: domain
-            dc: example
-
-            dn: ou=users,dc=example
-            objectClass: organizationalUnit
-            ou: users
-          '';
-        };
+        paths = ["/run/certs"];
       };
       exporterTest = ''
-        wait_for_unit("prometheus-openldap-exporter.service")
-        wait_for_open_port(389)
-        wait_for_open_port(9330)
+        wait_for_unit("prometheus-node-cert-exporter.service")
+        wait_for_open_port(9141)
         wait_until_succeeds(
-            "curl -sSf http://localhost:9330/metrics | grep 'openldap_scrape{result=\"ok\"} 1'"
+            "curl -sSf http://localhost:9141/metrics | grep 'ssl_certificate_expiry_seconds{.\\+path=\"/run/certs/node-cert\\.cert\".\\+}'"
         )
       '';
-    };
 
-    openvpn = {
-      exporterConfig = {
-        enable = true;
-        group = "openvpn";
-        statusPaths = [ "/run/openvpn-test" ];
-      };
       metricProvider = {
-        users.groups.openvpn = { };
-        services.openvpn.servers.test = {
-          config = ''
-            dev tun
-            status /run/openvpn-test
-            status-version 3
-          '';
-          up = "chmod g+r /run/openvpn-test";
-        };
-        systemd.services."openvpn-test".serviceConfig.Group = "openvpn";
+        system.activationScripts.cert.text = ''
+          mkdir -p /run/certs
+          cd /run/certs
+
+          cat >ca.template <<EOF
+          organization = "prometheus-node-cert-exporter"
+          cn = "prometheus-node-cert-exporter"
+          expiration_days = 365
+          ca
+          cert_signing_key
+          crl_signing_key
+          EOF
+
+          ${pkgs.gnutls}/bin/certtool  \
+            --generate-privkey         \
+            --key-type rsa             \
+            --sec-param High           \
+            --outfile node-cert.key
+
+          ${pkgs.gnutls}/bin/certtool     \
+            --generate-self-signed        \
+            --load-privkey node-cert.key  \
+            --template ca.template        \
+            --outfile node-cert.cert
+        '';
       };
-      exporterTest = ''
-        wait_for_unit("openvpn-test.service")
-        wait_for_unit("prometheus-openvpn-exporter.service")
-        succeed("curl -sSf http://localhost:9176/metrics | grep 'openvpn_up{.*} 1'")
-      '';
     };
 
     pgbouncer = {
       exporterConfig = {
         enable = true;
-        connectionStringFile = pkgs.writeText "connection.conf" "postgres://admin:@localhost:6432/pgbouncer?sslmode=disable";
+        connectionEnvFile = "${pkgs.writeText "connstr-env" ''
+          PGBOUNCER_EXPORTER_CONNECTION_STRING=postgres://admin@localhost:6432/pgbouncer?sslmode=disable
+        ''}";
       };
 
       metricProvider = {
         services.postgresql.enable = true;
         services.pgbouncer = {
-          # https://github.com/prometheus-community/pgbouncer_exporter#pgbouncer-configuration
-          ignoreStartupParameters = "extra_float_digits";
           enable = true;
-          listenAddress = "*";
-          databases = { postgres = "host=/run/postgresql/ port=5432 auth_user=postgres dbname=postgres"; };
-          authType = "any";
-          maxClientConn = 99;
+          settings = {
+            pgbouncer = {
+              listen_addr = "*";
+              auth_type = "any";
+              max_client_conn = 99;
+              # https://github.com/prometheus-community/pgbouncer_exporter#pgbouncer-configuration
+              ignore_startup_parameters = "extra_float_digits";
+            };
+            databases = {
+              postgres = concatStringsSep " " [
+                "host=/run/postgresql"
+                "port=5432"
+                "auth_user=postgres"
+                "dbname=postgres"
+              ];
+            };
+          };
         };
       };
       exporterTest = ''
@@ -1217,6 +1275,39 @@ let
       '';
     };
 
+    restic =
+      let
+        repository = "rest:http://127.0.0.1:8000";
+        passwordFile = pkgs.writeText "restic-test-password" "test-password";
+      in
+      {
+        exporterConfig = {
+          enable = true;
+          inherit repository passwordFile;
+        };
+        metricProvider = {
+          services.restic.server = {
+            enable = true;
+            extraFlags = [ "--no-auth" ];
+          };
+          environment.systemPackages = [ pkgs.restic ];
+        };
+        exporterTest = ''
+          # prometheus-restic-exporter.service fails without initialised repository
+          systemctl("stop prometheus-restic-exporter.service")
+
+          # Initialise the repository
+          wait_for_unit("restic-rest-server.service")
+          wait_for_open_port(8000)
+          succeed("restic init --repo ${repository} --password-file ${passwordFile}")
+
+          systemctl("start prometheus-restic-exporter.service")
+          wait_for_unit("prometheus-restic-exporter.service")
+          wait_for_open_port(9753)
+          wait_until_succeeds("curl -sSf localhost:9753/metrics | grep 'restic_check_success 1.0'")
+        '';
+      };
+
     rspamd = {
       exporterConfig = {
         enable = true;
@@ -1392,9 +1483,11 @@ let
     snmp = {
       exporterConfig = {
         enable = true;
-        configuration.default = {
-          version = 2;
-          auth.community = "public";
+        configuration = {
+          auths.public_v2 = {
+            community = "public";
+            version = 2;
+          };
         };
       };
       exporterTest = ''
@@ -1517,25 +1610,6 @@ let
       '';
     };
 
-    tor = {
-      exporterConfig = {
-        enable = true;
-      };
-      metricProvider = {
-        # Note: this does not connect the test environment to the Tor network.
-        # Client, relay, bridge or exit connectivity are disabled by default.
-        services.tor.enable = true;
-        services.tor.settings.ControlPort = 9051;
-      };
-      exporterTest = ''
-        wait_for_unit("tor.service")
-        wait_for_open_port(9051)
-        wait_for_unit("prometheus-tor-exporter.service")
-        wait_for_open_port(9130)
-        succeed("curl -sSf localhost:9130/metrics | grep 'tor_version{.\\+} 1'")
-      '';
-    };
-
     unpoller = {
       nodeName = "unpoller";
       exporterConfig.enable = true;
@@ -1633,7 +1707,7 @@ let
     varnish = {
       exporterConfig = {
         enable = true;
-        instance = "/var/spool/varnish/varnish";
+        instance = "/run/varnish/varnish";
         group = "varnish";
       };
       metricProvider = {
@@ -1642,6 +1716,7 @@ let
         ];
         services.varnish = {
           enable = true;
+          stateDir = "/run/varnish/varnish";
           config = ''
             vcl 4.0;
             backend default {
@@ -1722,7 +1797,12 @@ mapAttrs
       testScript = ''
         ${nodeName}.start()
         ${concatStringsSep "\n" (map (line:
-          if (builtins.substring 0 1 line == " " || builtins.substring 0 1 line == ")")
+          if builtins.any (b: b) [
+            (builtins.match "^[[:space:]]*$" line != null)
+            (builtins.substring 0 1 line == "#")
+            (builtins.substring 0 1 line == " ")
+            (builtins.substring 0 1 line == ")")
+          ]
           then line
           else "${nodeName}.${line}"
         ) (splitString "\n" (removeSuffix "\n" testConfig.exporterTest)))}

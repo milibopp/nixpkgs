@@ -1,41 +1,68 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, isl
-, pybind11
-, pytestCheckHook
-, pythonOlder
-, six
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  cmake,
+  nanobind,
+  ninja,
+  pcpp,
+  scikit-build,
+  setuptools,
+
+  # buildInputs
+  isl,
+
+  # tests
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "islpy";
-  version = "2023.2.5";
-  format = "setuptools";
+  version = "2025.1.2";
+  pyproject = true;
 
-  disabled = pythonOlder "3.6";
-
-  src = fetchPypi {
-    inherit pname version;
-    sha256 = "sha256-3XQ5i682k4q7fCqdmCjMGi5UnGyASFzsiwaymr+q0Y8=";
+  src = fetchFromGitHub {
+    owner = "inducer";
+    repo = "islpy";
+    tag = "v${version}";
+    hash = "sha256-F+qF/pX/1rFZiDVK71FYNatWuVkcvl62+EriTHzAfHw=";
   };
 
-  postConfigure = ''
-    substituteInPlace setup.py \
-      --replace "\"pytest>=2\"," ""
+  build-system = [
+    cmake
+    nanobind
+    ninja
+    pcpp
+    scikit-build
+    setuptools
+  ];
+
+  buildInputs = [ isl ];
+
+  dontUseCmakeConfigure = true;
+
+  preConfigure = ''
+    python ./configure.py \
+        --no-use-shipped-isl \
+        --isl-inc-dir=${lib.getDev isl}/include \
   '';
 
-  buildInputs = [ isl pybind11 ];
-  propagatedBuildInputs = [ six ];
+  # Force resolving the package from $out to make generated ext files usable by tests
+  preCheck = ''
+    rm -rf islpy
+  '';
 
-  preCheck = "mv islpy islpy.hidden";
   nativeCheckInputs = [ pytestCheckHook ];
+
   pythonImportsCheck = [ "islpy" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python wrapper around isl, an integer set library";
     homepage = "https://github.com/inducer/islpy";
-    license = licenses.mit;
-    maintainers = [ ];
+    changelog = "https://github.com/inducer/islpy/releases/tag/v${version}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ tomasajt ];
   };
 }

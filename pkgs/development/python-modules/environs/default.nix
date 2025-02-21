@@ -1,19 +1,20 @@
-{ lib
-, buildPythonPackage
-, dj-database-url
-, dj-email-url
-, django-cache-url
-, fetchFromGitHub
-, marshmallow
-, pytestCheckHook
-, python-dotenv
-, pythonOlder
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  dj-database-url,
+  dj-email-url,
+  django-cache-url,
+  fetchFromGitHub,
+  flit-core,
+  marshmallow,
+  pytestCheckHook,
+  python-dotenv,
+  pythonOlder,
 }:
 
 buildPythonPackage rec {
   pname = "environs";
-  version = "10.1.0";
+  version = "14.1.1";
   pyproject = true;
 
   disabled = pythonOlder "3.8";
@@ -21,13 +22,11 @@ buildPythonPackage rec {
   src = fetchFromGitHub {
     owner = "sloria";
     repo = "environs";
-    rev = "refs/tags/${version}";
-    hash = "sha256-G9dgOugmFRHSLlmVHs2H5XyF3UKghAGtuzTWn4IB4dI=";
+    tag = version;
+    hash = "sha256-yWGLCUMnmk+d6o4OmBxuSTdImse8ikNs0rDXLZgFU6k=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ flit-core ];
 
   propagatedBuildInputs = [
     marshmallow
@@ -41,9 +40,7 @@ buildPythonPackage rec {
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "environs"
-  ];
+  pythonImportsCheck = [ "environs" ];
 
   meta = with lib; {
     description = "Python modle for environment variable parsing";

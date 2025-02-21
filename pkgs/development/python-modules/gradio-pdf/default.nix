@@ -1,50 +1,45 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, hatch-fancy-pypi-readme
-, hatch-requirements-txt
-, hatchling
-, gradio
-, gradio-client
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  hatch-fancy-pypi-readme,
+  hatch-requirements-txt,
+  hatchling,
+  gradio,
+  gradio-client,
 }:
 
 buildPythonPackage rec {
   pname = "gradio-pdf";
-  version = "0.0.3";
-  format = "pyproject";
+  version = "0.0.19";
+  pyproject = true;
 
   src = fetchPypi {
     pname = "gradio_pdf";
     inherit version;
-    hash = "sha256-l9bcH/6paEdKk9Q7HM3ap9MI1Qi7rPZ/ucAibBUEPKI=";
+    hash = "sha256-UVHNyKU2cl/0HZqntnyBOFmgeIJ6UjJejEqKqFIPdoo=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     hatch-fancy-pypi-readme
     hatch-requirements-txt
     hatchling
   ];
 
-  propagatedBuildInputs = [
-    gradio-client
-  ];
+  dependencies = [ gradio-client ];
 
-  buildInputs = [
-    gradio.sans-reverse-dependencies
-  ];
-  disallowedReferences = [
-    gradio.sans-reverse-dependencies
-  ];
+  buildInputs = [ gradio.sans-reverse-dependencies ];
+  disallowedReferences = [ gradio.sans-reverse-dependencies ];
 
   pythonImportsCheck = [ "gradio_pdf" ];
 
   # tested in `gradio`
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
     description = "Python library for easily interacting with trained machine learning models";
     homepage = "https://pypi.org/project/gradio-pdf/";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ pbsds ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ pbsds ];
   };
 }

@@ -1,50 +1,64 @@
-{ lib, buildPythonPackage, fetchurl, isPy27, renpy
-, cython, SDL2, SDL2_image, SDL2_ttf, SDL2_mixer, libjpeg, libpng }:
+{
+  buildPythonPackage,
+  cython_0,
+  fetchFromGitHub,
+  lib,
+  libjpeg,
+  libpng,
+  nix-update-script,
+  SDL2,
+  SDL2_image,
+  SDL2_mixer,
+  SDL2_ttf,
+  setuptools,
+}:
 
 buildPythonPackage rec {
   pname = "pygame-sdl2";
-  version = "2.1.0";
-  format = "setuptools";
-  renpy_version = renpy.base_version;
-  name = "${pname}-${version}-${renpy_version}";
+  version = "8.3.1.24090601";
+  pyproject = true;
 
-  src = fetchurl {
-    url = "https://www.renpy.org/dl/${renpy_version}/pygame_sdl2-${version}+renpy${renpy_version}.tar.gz";
-    hash = "sha256-mrfrsRAVEqw7fwtYdeATp/8AtMn74x9pJEXwYZPOl2I=";
+  src = fetchFromGitHub {
+    owner = "renpy";
+    repo = "pygame_sdl2";
+    tag = "renpy-${version}";
+    hash = "sha256-0itOmDScM+4HmWTpjkln56pv+yXDPB1KIDbE6ub2Tls=";
   };
 
-  # force rebuild of headers needed for install
-  prePatch = ''
-    rm -rf gen gen3
-  '';
-
-  # Remove build tag which produces invaild version
-  postPatch = ''
-    sed -i '2d' setup.cfg
-  '';
-
-  nativeBuildInputs = [
-    SDL2.dev cython
+  build-system = [
+    cython_0
+    SDL2
+    setuptools
   ];
 
-  buildInputs = [
-    SDL2 SDL2_image SDL2_ttf SDL2_mixer
-    libjpeg libpng
+  dependencies = [
+    libjpeg
+    libpng
+    SDL2
+    SDL2_image
+    SDL2_mixer
+    SDL2_ttf
   ];
 
+  doCheck = true;
 
-  doCheck = isPy27; # python3 tests are non-functional
-
-  postInstall = ''
-    ( cd "$out"/include/python*/ ;
-      ln -s pygame-sdl2 pygame_sdl2 || true ; )
+  preBuild = ''
+    substituteInPlace setup.py --replace-fail "2.1.0" "${version}"
+    substituteInPlace src/pygame_sdl2/version.py --replace-fail "2, 1, 0" "${
+      builtins.replaceStrings [ "." ] [ ", " ] version
+    }"
   '';
 
-  meta = with lib; {
-    description = "A reimplementation of parts of pygame API using SDL2";
-    homepage    = "https://github.com/renpy/pygame_sdl2";
-    # Some parts are also available under Zlib License
-    license     = licenses.lgpl2;
-    maintainers = with maintainers; [ raskin ];
+  passthru.updateScript = nix-update-script { extraArgs = [ "--version-regex=renpy-(.*)" ]; };
+
+  meta = {
+    description = "Reimplementation of the Pygame API using SDL2 and related libraries";
+    homepage = "https://github.com/renpy/pygame_sdl2";
+    license = with lib.licenses; [
+      lgpl2
+      zlib
+    ];
+    platforms = lib.platforms.unix;
+    maintainers = with lib.maintainers; [ raskin ];
   };
 }

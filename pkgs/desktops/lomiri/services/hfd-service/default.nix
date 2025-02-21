@@ -1,28 +1,29 @@
-{ stdenv
-, lib
-, fetchFromGitLab
-, gitUpdater
-, accountsservice
-, cmake
-, cmake-extras
-, deviceinfo
-, libgbinder
-, libglibutil
-, pkg-config
-, qtbase
-, qtdeclarative
-, qtfeedback
+{
+  stdenv,
+  lib,
+  fetchFromGitLab,
+  gitUpdater,
+  accountsservice,
+  cmake,
+  cmake-extras,
+  deviceinfo,
+  libgbinder,
+  libglibutil,
+  pkg-config,
+  qtbase,
+  qtdeclarative,
+  qtfeedback,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "hfd-service";
-  version = "0.2.1";
+  version = "0.2.3";
 
   src = fetchFromGitLab {
     owner = "ubports";
     repo = "development/core/hfd-service";
     rev = finalAttrs.version;
-    hash = "sha256-KcHwLTSdo86YCteUsPndoxmLf23SOEhROc5cJQ8GS1Q=";
+    hash = "sha256-PvZPdisqpKl9OSuQXIJW1y6EJ5moesJiEAQjpQjzyWQ=";
   };
 
   postPatch = ''
@@ -45,6 +46,7 @@ stdenv.mkDerivation (finalAttrs: {
   nativeBuildInputs = [
     cmake
     pkg-config
+    qtdeclarative
   ];
 
   buildInputs = [
@@ -59,7 +61,7 @@ stdenv.mkDerivation (finalAttrs: {
   ];
 
   cmakeFlags = [
-    "-DENABLE_LIBHYBRIS=OFF"
+    (lib.cmakeBool "ENABLE_LIBHYBRIS" false)
   ];
 
   dontWrapQtApps = true;
@@ -69,6 +71,7 @@ stdenv.mkDerivation (finalAttrs: {
   meta = with lib; {
     description = "DBus-activated service that manages human feedback devices such as LEDs and vibrators on mobile devices";
     homepage = "https://gitlab.com/ubports/development/core/hfd-service";
+    changelog = "https://gitlab.com/ubports/development/core/hfd-service/-/blob/${finalAttrs.version}/ChangeLog";
     license = licenses.lgpl3Only;
     maintainers = teams.lomiri.members;
     platforms = platforms.linux;

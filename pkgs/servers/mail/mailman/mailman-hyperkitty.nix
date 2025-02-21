@@ -1,7 +1,9 @@
-{ lib
-, python3
-, fetchPypi
-, mailman
+{
+  lib,
+  python3,
+  fetchPypi,
+  mailman,
+  nixosTests,
 }:
 
 with python3.pkgs;
@@ -14,7 +16,7 @@ buildPythonPackage rec {
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "sha256-+Nad+8bMtYKJbUCpppRXqhB1zdbvvFXTTHlwJLQLzDg=";
+    hash = "sha256-+Nad+8bMtYKJbUCpppRXqhB1zdbvvFXTTHlwJLQLzDg=";
   };
 
   propagatedBuildInputs = [
@@ -38,6 +40,8 @@ buildPythonPackage rec {
   pythonImportsCheck = [
     "mailman_hyperkitty"
   ];
+
+  passthru.tests = { inherit (nixosTests) mailman; };
 
   meta = with lib; {
     description = "Mailman archiver plugin for HyperKitty";

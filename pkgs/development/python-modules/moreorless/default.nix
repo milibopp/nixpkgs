@@ -1,11 +1,12 @@
-{ lib
-, buildPythonPackage
-, click
-, fetchFromGitHub
-, parameterized
-, pytestCheckHook
-, pythonOlder
-, setuptools-scm
+{
+  lib,
+  buildPythonPackage,
+  click,
+  fetchFromGitHub,
+  parameterized,
+  pytestCheckHook,
+  pythonOlder,
+  setuptools-scm,
 }:
 
 buildPythonPackage rec {
@@ -18,26 +19,20 @@ buildPythonPackage rec {
   src = fetchFromGitHub {
     owner = "thatch";
     repo = "moreorless";
-    rev = "refs/tags/v${version}";
+    tag = "v${version}";
     hash = "sha256-N11iqsxMGgzwW2QYeOoHQaR/aDEuoUnnd/2Mc5culN0=";
   };
 
-  nativeBuildInputs = [
-    setuptools-scm
-  ];
+  nativeBuildInputs = [ setuptools-scm ];
 
-  propagatedBuildInputs = [
-    click
-  ];
+  propagatedBuildInputs = [ click ];
 
   nativeCheckInputs = [
     parameterized
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "moreorless"
-  ];
+  pythonImportsCheck = [ "moreorless" ];
 
   pytestFlagsArray = [
     "moreorless/tests/click.py"

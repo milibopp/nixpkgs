@@ -1,6 +1,7 @@
-{ lib
-, buildGoModule
-, fetchFromGitHub
+{
+  lib,
+  buildGoModule,
+  fetchFromGitHub,
 }:
 
 buildGoModule rec {
@@ -18,6 +19,7 @@ buildGoModule rec {
 
   meta = with lib; {
     description = "Lightweight URL fuzzer and spider: Discover a web server's undisclosed files, directories and VHOSTs";
+    mainProgram = "scout";
     homepage = "https://github.com/liamg/scout";
     platforms = platforms.unix;
     license = licenses.unlicense;

@@ -1,25 +1,27 @@
-{ lib
-, stdenvNoCC
-, fetchFromGitHub
-, makeWrapper
-, scdoc
-, coreutils
-, util-linux
-, jq
-, libnotify
-, withHyprland ? true
-, hyprland
+{
+  coreutils,
+  fetchFromGitHub,
+  gawk,
+  hyprland,
+  jq,
+  lib,
+  libnotify,
+  makeWrapper,
+  scdoc,
+  stdenvNoCC,
+  util-linux,
+  withHyprland ? true,
 }:
 
 stdenvNoCC.mkDerivation rec {
   pname = "hdrop";
-  version = "0.3.0";
+  version = "0.7.5";
 
   src = fetchFromGitHub {
     owner = "Schweber";
     repo = "hdrop";
     rev = "v${version}";
-    hash = "sha256-IVLc1USBkkIBEll1jRIAAszyGCmpw5Sy74Zyalv3W+w=";
+    hash = "sha256-TKSiwpoc1RSct8JzLHeM5SZaIT8fQUmAmY45OKbvQ9E=";
   };
 
   nativeBuildInputs = [
@@ -31,20 +33,25 @@ stdenvNoCC.mkDerivation rec {
 
   postInstall = ''
     wrapProgram $out/bin/hdrop --prefix PATH ':' \
-      "${lib.makeBinPath ([
-        coreutils
-        util-linux
-        jq
-        libnotify
-      ]
-      ++ lib.optional withHyprland hyprland)}"
+      "${
+        lib.makeBinPath (
+          [
+            coreutils
+            util-linux
+            jq
+            libnotify
+            gawk
+          ]
+          ++ lib.optional withHyprland hyprland
+        )
+      }"
   '';
 
   meta = with lib; {
     description = "Emulate 'tdrop' in Hyprland (run, show and hide specific programs per keybind)";
     homepage = "https://github.com/Schweber/hdrop";
     changelog = "https://github.com/Schweber/hdrop/releases/tag/v${version}";
-    license = licenses.agpl3;
+    license = licenses.agpl3Only;
     platforms = platforms.linux;
     maintainers = with maintainers; [ Schweber ];
     mainProgram = "hdrop";

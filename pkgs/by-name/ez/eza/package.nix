@@ -1,57 +1,66 @@
-{ lib
-, gitSupport ? true
-, stdenv
-, fetchFromGitHub
-, rustPlatform
-, cmake
-, pandoc
-, pkg-config
-, zlib
-, darwin
-, libiconv
-, installShellFiles
-  # once eza upstream gets support for setting up a compatibilty symlink for exa, we should change
+{
+  lib,
+  gitSupport ? true,
+  fetchFromGitHub,
+  rustPlatform,
+  cmake,
+  pandoc,
+  pkg-config,
+  zlib,
+  installShellFiles,
+  # once eza upstream gets support for setting up a compatibility symlink for exa, we should change
   # the handling here from postInstall to passing the required argument to the builder.
-, exaAlias ? true
+  exaAlias ? true,
 }:
 
 rustPlatform.buildRustPackage rec {
   pname = "eza";
-  version = "0.17.1";
+  version = "0.20.22";
 
   src = fetchFromGitHub {
     owner = "eza-community";
     repo = "eza";
     rev = "v${version}";
-    hash = "sha256-PItKMPaqDG8L0dYHl8cLoyieljNpP41HLIFfpcLerNg=";
+    hash = "sha256-kWrlzXhuYrekeXYx0BX82sfyjlKn46XiVIPJP41K9qE=";
   };
 
-  cargoHash = "sha256-PrKP9Akv+qionFTHtlrY8bzaX9HaobhBJGVRMvXWfZU=";
+  useFetchCargoVendor = true;
+  cargoHash = "sha256-dqpeBHUnCq9DJyREiD5dU6y4TCWkj0GXYm4eKnDkkv8=";
 
-  nativeBuildInputs = [ cmake pkg-config installShellFiles pandoc ];
-  buildInputs = [ zlib ]
-    ++ lib.optionals stdenv.isDarwin [ libiconv darwin.apple_sdk.frameworks.Security ];
+  nativeBuildInputs = [
+    cmake
+    pkg-config
+    installShellFiles
+    pandoc
+  ];
+  buildInputs = [ zlib ];
 
   buildNoDefaultFeatures = true;
   buildFeatures = lib.optional gitSupport "git";
 
-  outputs = [ "out" "man" ];
+  outputs = [
+    "out"
+    "man"
+  ];
 
-  postInstall = ''
-    pandoc --standalone -f markdown -t man man/eza.1.md > man/eza.1
-    pandoc --standalone -f markdown -t man man/eza_colors.5.md > man/eza_colors.5
-    pandoc --standalone -f markdown -t man man/eza_colors-explanation.5.md > man/eza_colors-explanation.5
-    installManPage man/eza.1 man/eza_colors.5 man/eza_colors-explanation.5
-    installShellCompletion \
-      --bash completions/bash/eza \
-      --fish completions/fish/eza.fish \
-      --zsh completions/zsh/_eza
-  '' + lib.optionalString exaAlias ''
-    ln -s eza $out/bin/exa
-  '';
+  postInstall =
+    ''
+      for page in eza.1 eza_colors.5 eza_colors-explanation.5; do
+        sed "s/\$version/v${version}/g" "man/$page.md" |
+          pandoc --standalone -f markdown -t man >"man/$page"
+      done
+      installManPage man/eza.1 man/eza_colors.5 man/eza_colors-explanation.5
+      installShellCompletion \
+        --bash completions/bash/eza \
+        --fish completions/fish/eza.fish \
+        --zsh completions/zsh/_eza
+    ''
+    + lib.optionalString exaAlias ''
+      ln -s eza $out/bin/exa
+    '';
 
   meta = with lib; {
-    description = "A modern, maintained replacement for ls";
+    description = "Modern, maintained replacement for ls";
     longDescription = ''
       eza is a modern replacement for ls. It uses colours for information by
       default, helping you distinguish between many types of files, such as
@@ -62,9 +71,13 @@ rustPlatform.buildRustPackage rec {
     '';
     homepage = "https://github.com/eza-community/eza";
     changelog = "https://github.com/eza-community/eza/releases/tag/v${version}";
-    license = licenses.mit;
+    license = licenses.eupl12;
     mainProgram = "eza";
-    maintainers = with maintainers; [ cafkafk _9glenda ];
+    maintainers = with maintainers; [
+      cafkafk
+      _9glenda
+      sigmasquadron
+    ];
     platforms = platforms.unix ++ platforms.windows;
   };
 }

@@ -1,20 +1,33 @@
-{ buildPythonPackage
-, cmake
-, fetchPypi
-, glfw
-, lib
-, mujoco
-, numpy
-, perl
-, pkgs
-, pybind11
-, python
-, setuptools
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchPypi,
+
+  # nativeBuildInputs
+  cmake,
+
+  # build-system
+  setuptools,
+
+  # buildInputs
+  mujoco,
+  pybind11,
+
+  # dependencies
+  absl-py,
+  etils,
+  glfw,
+  numpy,
+  pyopengl,
+
+  perl,
+  python,
 }:
 
 buildPythonPackage rec {
   pname = "mujoco";
-  version = "3.1.0";
+  inherit (mujoco) version;
 
   pyproject = true;
 
@@ -24,13 +37,27 @@ buildPythonPackage rec {
   # in the project's CI.
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-rZNVihIuvNJnQWqA5tV9DG5r3/LttWNW6fN2js+fDb8=";
+    hash = "sha256-a0ATRmtFV11J3T2HSNCZhfc0kAOu8yaHIW0rkCrHsTg=";
   };
 
-  nativeBuildInputs = [ cmake setuptools ];
+  nativeBuildInputs = [ cmake ];
+
   dontUseCmakeConfigure = true;
-  buildInputs = [ mujoco pybind11 ];
-  propagatedBuildInputs = [ glfw numpy ];
+
+  build-system = [ setuptools ];
+
+  buildInputs = [
+    mujoco
+    pybind11
+  ];
+
+  dependencies = [
+    absl-py
+    etils
+    glfw
+    numpy
+    pyopengl
+  ];
 
   pythonImportsCheck = [ "${pname}" ];
 
@@ -44,26 +71,36 @@ buildPythonPackage rec {
   preConfigure =
     # Use non-system eigen3, lodepng, abseil: Remove mirror info and prefill
     # dependency directory. $build from setuptools.
-    (let
-      # E.g. 3.11.2 -> "311"
-      pythonVersionMajorMinor = with lib.versions;
-        "${major python.pythonVersion}${minor python.pythonVersion}";
-    in ''
-      ${perl}/bin/perl -0777 -i -pe "s/GIT_REPO\n.*\n.*GIT_TAG\n.*\n//gm" mujoco/CMakeLists.txt
-      ${perl}/bin/perl -0777 -i -pe "s/(FetchContent_Declare\(\n.*lodepng\n.*)(GIT_REPO.*\n.*GIT_TAG.*\n)(.*\))/\1\3/gm" mujoco/simulate/CMakeLists.txt
+    (
+      let
+        # E.g. 3.11.2 -> "311"
+        pythonVersionMajorMinor =
+          with lib.versions;
+          "${major python.pythonVersion}${minor python.pythonVersion}";
 
-      build="/build/${pname}-${version}/build/temp.linux-x86_64-cpython-${pythonVersionMajorMinor}/"
-      mkdir -p $build/_deps
-      ln -s ${mujoco.pin.lodepng} $build/_deps/lodepng-src
-      ln -s ${mujoco.pin.eigen3} $build/_deps/eigen-src
-      ln -s ${mujoco.pin.abseil-cpp} $build/_deps/abseil-cpp-src
-    '');
+        # E.g. "linux-aarch64"
+        platform = with stdenv.hostPlatform.parsed; "${kernel.name}-${cpu.name}";
+      in
+      ''
+        ${perl}/bin/perl -0777 -i -pe "s/GIT_REPO\n.*\n.*GIT_TAG\n.*\n//gm" mujoco/CMakeLists.txt
+        ${perl}/bin/perl -0777 -i -pe "s/(FetchContent_Declare\(\n.*lodepng\n.*)(GIT_REPO.*\n.*GIT_TAG.*\n)(.*\))/\1\3/gm" mujoco/simulate/CMakeLists.txt
 
-  meta = with lib; {
-    description =
-      "Python bindings for MuJoCo: a general purpose physics simulator.";
+        build="/build/${pname}-${version}/build/temp.${platform}-cpython-${pythonVersionMajorMinor}/"
+        mkdir -p $build/_deps
+        ln -s ${mujoco.pin.lodepng} $build/_deps/lodepng-src
+        ln -s ${mujoco.pin.eigen3} $build/_deps/eigen-src
+        ln -s ${mujoco.pin.abseil-cpp} $build/_deps/abseil-cpp-src
+      ''
+    );
+
+  meta = {
+    description = "Python bindings for MuJoCo: a general purpose physics simulator";
     homepage = "https://mujoco.org/";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ tmplt ];
+    changelog = "https://github.com/google-deepmind/mujoco/releases/tag/${version}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [
+      GaetanLepage
+      tmplt
+    ];
   };
 }

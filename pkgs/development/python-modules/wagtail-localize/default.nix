@@ -1,42 +1,43 @@
-{ lib
-, buildPythonPackage
-, dj-database-url
-, django
-, django-rq
-, fetchFromGitHub
-, flit-core
-, freezegun
-, google-cloud-translate
-, polib
-, python
-, pythonOlder
-, typing-extensions
-, wagtail
+{
+  lib,
+  buildPythonPackage,
+  dj-database-url,
+  django,
+  django-rq,
+  fetchFromGitHub,
+  flit-core,
+  freezegun,
+  google-cloud-translate,
+  polib,
+  python,
+  pythonOlder,
+  typing-extensions,
+  wagtail,
+  wagtail-modeladmin,
 }:
 
 buildPythonPackage rec {
   pname = "wagtail-localize";
-  version = "1.7";
-  format = "pyproject";
+  version = "1.11.3";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
+  disabled = pythonOlder "3.9";
 
   src = fetchFromGitHub {
-    repo = pname;
+    repo = "wagtail-localize";
     owner = "wagtail";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-Q29Nh/4Z3tYuwoodWKDl5FS+lfl9yDXN7RHn/RReCds=";
+    tag = "v${version}";
+    hash = "sha256-uTZqpitexB5e2/W9HtNo0j4gOW9vDS2BsaVq16BUFM4=";
   };
 
-  nativeBuildInputs = [
-    flit-core
-  ];
+  build-system = [ flit-core ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     django
     wagtail
     polib
     typing-extensions
+    wagtail-modeladmin
   ];
 
   nativeCheckInputs = [
@@ -46,10 +47,8 @@ buildPythonPackage rec {
     google-cloud-translate
   ];
 
-  passthru.optional-dependencies = {
-    google = [
-      google-cloud-translate
-    ];
+  optional-dependencies = {
+    google = [ google-cloud-translate ];
   };
 
   checkPhase = ''
@@ -61,7 +60,7 @@ buildPythonPackage rec {
   meta = with lib; {
     description = "Translation plugin for Wagtail CMS";
     homepage = "https://github.com/wagtail/wagtail-localize";
-    changelog = "https://github.com/wagtail/wagtail-localize/blob/v${version}/CHANGELOG.md";
+    changelog = "https://github.com/wagtail/wagtail-localize/blob/${src.tag}/CHANGELOG.md";
     license = licenses.bsd3;
     maintainers = with maintainers; [ sephi ];
   };

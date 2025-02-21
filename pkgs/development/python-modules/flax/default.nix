@@ -1,75 +1,87 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, jaxlib
-, pythonRelaxDepsHook
-, setuptools-scm
-, jax
-, msgpack
-, numpy
-, optax
-, pyyaml
-, rich
-, tensorstore
-, typing-extensions
-, matplotlib
-, cloudpickle
-, einops
-, keras
-, pytest-xdist
-, pytestCheckHook
-, tensorflow
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  setuptools,
+  setuptools-scm,
+
+  # dependencies
+  jax,
+  msgpack,
+  numpy,
+  optax,
+  orbax-checkpoint,
+  pyyaml,
+  rich,
+  tensorstore,
+  typing-extensions,
+
+  # optional-dependencies
+  matplotlib,
+
+  # dependencies
+  cloudpickle,
+  keras,
+  einops,
+  flaxlib,
+  pytestCheckHook,
+  pytest-xdist,
+  sphinx,
+  tensorflow,
+  treescope,
+
+  writeScript,
+  tomlq,
 }:
 
 buildPythonPackage rec {
   pname = "flax";
-  version = "0.7.5";
+  version = "0.10.3";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "google";
     repo = "flax";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-NDah0ayQbiO1/sTU1DDf/crPq5oLTnSuosV7cFHlTM8=";
+    tag = "v${version}";
+    hash = "sha256-PRKdtltiBVX9p6Sjw4sCDghqxYRxq4L9TLle1vy5dkk=";
   };
 
-  nativeBuildInputs = [
-    jaxlib
-    pythonRelaxDepsHook
+  build-system = [
+    setuptools
     setuptools-scm
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
+    flaxlib
     jax
     msgpack
     numpy
     optax
+    orbax-checkpoint
     pyyaml
     rich
     tensorstore
+    treescope
     typing-extensions
   ];
 
-  passthru.optional-dependencies = {
+  optional-dependencies = {
     all = [ matplotlib ];
   };
 
-  pythonImportsCheck = [
-    "flax"
-  ];
+  pythonImportsCheck = [ "flax" ];
 
   nativeCheckInputs = [
     cloudpickle
-    einops
     keras
-    pytest-xdist
+    einops
     pytestCheckHook
+    pytest-xdist
+    sphinx
     tensorflow
-  ];
-
-  pytestFlagsArray = [
-    "-W ignore::FutureWarning"
-    "-W ignore::DeprecationWarning"
   ];
 
   disabledTestPaths = [
@@ -86,16 +98,27 @@ buildPythonPackage rec {
 
     # See https://github.com/google/flax/issues/3232.
     "tests/jax_utils_test.py"
-
-    # Requires orbax which is not packaged as of 2023-07-27.
-    "tests/checkpoints_test.py"
   ];
 
-  meta = with lib; {
+  disabledTests = lib.optionals stdenv.hostPlatform.isDarwin [
+    # SystemError: nanobind::detail::nb_func_error_except(): exception could not be translated!
+    "test_ref_changed"
+    "test_structure_changed"
+  ];
+
+  passthru = {
+    updateScript = writeScript "update.sh" ''
+      nix-update flax # does not --build by default
+      nix-build . -A flax.src # src is essentially a passthru
+      nix-update flaxlib --version="$(${lib.getExe tomlq} <result/Cargo.toml .something.version)" --commit
+    '';
+  };
+
+  meta = {
     description = "Neural network library for JAX";
     homepage = "https://github.com/google/flax";
     changelog = "https://github.com/google/flax/releases/tag/v${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ndl ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ ndl ];
   };
 }

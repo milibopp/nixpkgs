@@ -1,55 +1,75 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, numpy
-, pyyaml
-, matplotlib
-, h5py
-, scipy
-, spglib
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  cmake,
+  nanobind,
+  ninja,
+  numpy,
+  scikit-build-core,
+  setuptools,
+  setuptools-scm,
+
+  # dependencies
+  h5py,
+  matplotlib,
+  pyyaml,
+  scipy,
+  spglib,
+  symfc,
+
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "phonopy";
-  version = "2.21.0";
-  format = "setuptools";
+  version = "2.37.0";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-WAWxgLwChQrwutpRsJtDUoNnwek6RpZB+9JtUFdr/pw=";
+  src = fetchFromGitHub {
+    owner = "phonopy";
+    repo = "phonopy";
+    tag = "v${version}";
+    hash = "sha256-Asrgf4sTriEOv4Vovejshl5HXAYQEckxbHvZ7GmSQgg=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [
+    cmake
+    nanobind
+    ninja
+    numpy
+    scikit-build-core
+    setuptools
+    setuptools-scm
+  ];
+  dontUseCmakeConfigure = true;
+
+  dependencies = [
     h5py
     matplotlib
     numpy
     pyyaml
     scipy
     spglib
+    symfc
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   # prevent pytest from importing local directory
   preCheck = ''
     rm -r phonopy
   '';
 
-  pythonImportsCheck = [
-    "phonopy"
-  ];
+  pythonImportsCheck = [ "phonopy" ];
 
-  meta = with lib; {
+  meta = {
     description = "Modulefor phonon calculations at harmonic and quasi-harmonic levels";
     homepage = "https://phonopy.github.io/phonopy/";
-    changelog = "https://github.com/phonopy/phonopy/blob/v${version}/doc/changelog.md";
-    license = licenses.bsd0;
-    maintainers = with maintainers; [ psyanticy ];
+    changelog = "http://phonopy.github.io/phonopy/changelog.html";
+    license = lib.licenses.bsd0;
+    maintainers = with lib.maintainers; [ psyanticy ];
   };
 }

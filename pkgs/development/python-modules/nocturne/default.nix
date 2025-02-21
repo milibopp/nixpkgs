@@ -1,14 +1,15 @@
-{ buildPythonPackage
-, cmake
-, fetchFromGitHub
-, gtest
-, hydra-core
-, lib
-, nlohmann_json
-, pybind11
-, pyvirtualdisplay
-, sfml
-, substituteAll
+{
+  buildPythonPackage,
+  cmake,
+  fetchFromGitHub,
+  gtest,
+  hydra-core,
+  lib,
+  nlohmann_json,
+  pybind11,
+  pyvirtualdisplay,
+  sfml,
+  replaceVars,
 }:
 
 buildPythonPackage rec {
@@ -31,8 +32,7 @@ buildPythonPackage rec {
   '';
 
   patches = [
-    (substituteAll {
-      src = ./dependencies.patch;
+    (replaceVars ./dependencies.patch {
       gtest_src = gtest.src;
     })
   ];
@@ -43,17 +43,18 @@ buildPythonPackage rec {
   buildInputs = [ sfml ];
 
   # hydra-core and pyvirtualdisplay are not declared as dependences but they are requirements
-  propagatedBuildInputs = [ hydra-core pyvirtualdisplay ];
+  propagatedBuildInputs = [
+    hydra-core
+    pyvirtualdisplay
+  ];
 
   # Test suite requires hydra-submitit-launcher which is not packaged as of 2022-01-02
   doCheck = false;
 
-  pythonImportsCheck = [
-    "nocturne"
-  ];
+  pythonImportsCheck = [ "nocturne" ];
 
   meta = with lib; {
-    description = "A data-driven, fast driving simulator for multi-agent coordination under partial observability";
+    description = "Data-driven, fast driving simulator for multi-agent coordination under partial observability";
     homepage = "https://github.com/facebookresearch/nocturne";
     license = licenses.mit;
     maintainers = with maintainers; [ samuela ];

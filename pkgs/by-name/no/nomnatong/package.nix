@@ -1,19 +1,20 @@
-{ lib
-, stdenvNoCC
-, fetchFromGitHub
-, python3Packages
-, nix-update-script
+{
+  lib,
+  stdenvNoCC,
+  fetchFromGitHub,
+  python3Packages,
+  nix-update-script,
 }:
 
 stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "nomnatong";
-  version = "5.08";
+  version = "5.13";
 
   src = fetchFromGitHub {
     owner = "nomfoundation";
     repo = "font";
     rev = "v${finalAttrs.version}";
-    hash = "sha256-WtAxnTFrgXdG2T1vqfRc31tNKbZagDSO9lycKxn8dKg=";
+    hash = "sha256-OGJJpvjrHqP6P5eoazrezRVhQ9Hj3xDYi/pYTUG2edw=";
   };
 
   nativeBuildInputs = [
@@ -45,10 +46,10 @@ stdenvNoCC.mkDerivation (finalAttrs: {
   passthru.updateScript = nix-update-script { };
 
   meta = {
-    homepage = "http://nomfoundation.org/nom-tools/Nom-Font";
-    description = "The Hán-Nôm Coded Character Set and Nom Na Tong Regular Reference Font";
+    homepage = "https://nomfoundation.org/nom-tools/Nom-Font";
+    description = "Hán-Nôm Coded Character Set and Nom Na Tong Regular Reference Font";
     license = lib.licenses.mit;
-    maintainers = with lib.maintainers; [ eclairevoyant ];
+    maintainers = with lib.maintainers; [ ];
     platforms = lib.platforms.all;
   };
 })

@@ -1,35 +1,40 @@
-{ lib
-, fetchFromGitHub
-, flutter
-, corrosion
-, rustPlatform
-, cargo
-, rustc
-, udev
-, copyDesktopItems
-, makeDesktopItem
+{
+  lib,
+  fetchFromGitHub,
+  flutter327,
+  corrosion,
+  rustPlatform,
+  cargo,
+  rustc,
+  udev,
+  copyDesktopItems,
+  makeDesktopItem,
 }:
-flutter.buildFlutterApplication rec {
+
+flutter327.buildFlutterApplication rec {
   pname = "intiface-central";
-  version = "2.5.3";
+  version = "2.6.5";
+
   src = fetchFromGitHub {
     owner = "intiface";
-    repo = pname;
-    rev = "v${version}";
-    hash = "sha256-i0G3wCfJ9Q7DEmVMrQv2K6fy4YRWsEMNns9zMZkJxvY=";
+    repo = "intiface-central";
+    tag = "v${version}";
+    hash = "sha256-goN0750EvGw5G8cb4jy6wWnjlLwlwMeTz4GQEilbwpY=";
   };
+
   patches = [
     ./corrosion.patch
   ];
 
   pubspecLock = lib.importJSON ./pubspec.lock.json;
 
-  cargoDeps = rustPlatform.fetchCargoTarball {
+  cargoDeps = rustPlatform.fetchCargoVendor {
     name = "${pname}-${version}-cargo-deps";
     inherit src;
-    sourceRoot = "source/intiface-engine-flutter-bridge";
-    hash = "sha256-0sCHa3rMaLYaUG3E3fmsLi0dSdb9vGyv7qNR3JQkXuU=";
+    sourceRoot = "${src.name}/intiface-engine-flutter-bridge";
+    hash = "sha256-z9i0xT0e8G9spOmXpI2yFee/y3ZEh69YqL+7zRWszzA=";
   };
+
   cargoRoot = "intiface-engine-flutter-bridge";
 
   preConfigure = ''
@@ -44,17 +49,14 @@ flutter.buildFlutterApplication rec {
     copyDesktopItems
   ];
 
-  buildInputs = [
-    udev
-  ];
+  buildInputs = [ udev ];
 
   # without this, only the splash screen will be shown and the logs will contain the
   # line `Failed to load dynamic library 'lib/libintiface_engine_flutter_bridge.so'`
-  extraWrapProgramArgs = "--chdir $out/app";
+  extraWrapProgramArgs = "--chdir $out/app/intiface-central";
 
   postInstall = ''
-    mkdir -p $out/share/pixmaps
-    cp $out/app/data/flutter_assets/assets/icons/intiface_central_icon.png $out/share/pixmaps/intiface-central.png
+    install -Dm644 $out/app/intiface-central/data/flutter_assets/assets/icons/intiface_central_icon.png $out/share/pixmaps/intiface-central.png
   '';
 
   desktopItems = [
@@ -67,12 +69,12 @@ flutter.buildFlutterApplication rec {
     })
   ];
 
-  meta = with lib; {
+  meta = {
     mainProgram = "intiface_central";
     description = "Intiface Central (Buttplug Frontend) Application for Desktop";
     homepage = "https://intiface.com/";
-    license = licenses.gpl3Only;
-    maintainers = with maintainers; [ _999eagle ];
-    platforms = platforms.linux;
+    license = lib.licenses.gpl3Only;
+    maintainers = with lib.maintainers; [ _999eagle ];
+    platforms = lib.platforms.linux;
   };
 }

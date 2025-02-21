@@ -1,25 +1,40 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, numpy
-, isPy3k
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pythonOlder,
+  setuptools,
+  numpy,
 }:
 
 buildPythonPackage rec {
   pname = "biopython";
-  version = "1.82";
-  format = "setuptools";
+  version = "1.85";
+  pyproject = true;
+
+  disabled = pythonOlder "3.9";
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-qbENlZroipdEqRxs42AfTIbn7EFnm8k8KfZ5IY9hZ7s=";
+    hash = "sha256-Xa+rdAWd5OePSfa1aE7drm585G8Jz6BZwdEznoseoKY=";
   };
 
-  disabled = !isPy3k;
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [ numpy ];
-  # Checks try to write to $HOME, which does not work with nix
-  doCheck = false;
+  dependencies = [ numpy ];
+
+  pythonImportsCheck = [ "Bio" ];
+
+  checkPhase = ''
+    runHook preCheck
+
+    export HOME=$(mktemp -d)
+    cd Tests
+    python run_tests.py --offline
+
+    runHook postCheck
+  '';
+
   meta = {
     description = "Python library for bioinformatics";
     longDescription = ''

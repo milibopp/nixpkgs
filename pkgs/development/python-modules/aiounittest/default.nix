@@ -1,11 +1,10 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonAtLeast
-, setuptools
-, nose
-, coverage
-, wrapt
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  pytestCheckHook,
+  wrapt,
 }:
 
 buildPythonPackage rec {
@@ -13,32 +12,18 @@ buildPythonPackage rec {
   version = "1.4.2";
   pyproject = true;
 
-  # requires the imp module
-  disabled = pythonAtLeast "3.12";
-
   src = fetchFromGitHub {
     owner = "kwarunek";
     repo = pname;
-    rev = "refs/tags/${version}";
+    tag = version;
     hash = "sha256-7lDOI1SHPpRZLTHRTmfbKlZH18T73poJdFyVmb+HKms=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
-  propagatedBuildInputs = [
-    wrapt
-  ];
+  propagatedBuildInputs = [ wrapt ];
 
-  nativeCheckInputs = [
-    nose
-    coverage
-  ];
-
-  checkPhase = ''
-    nosetests
-  '';
+  nativeCheckInputs = [ pytestCheckHook ];
 
   pythonImportsCheck = [ "aiounittest" ];
 

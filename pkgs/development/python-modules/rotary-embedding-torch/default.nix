@@ -1,27 +1,28 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
 
-# build-system
-, setuptools
-, wheel
+  # build-system
+  setuptools,
+  wheel,
 
-# dependencies
-, beartype
-, einops
-, torch
+  # dependencies
+  beartype,
+  einops,
+  torch,
 }:
 
 buildPythonPackage rec {
   pname = "rotary-embedding-torch";
-  version = "0.4.0";
+  version = "0.8.6";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "lucidrains";
     repo = "rotary-embedding-torch";
-    rev = "refs/tags/${version}";
-    hash = "sha256-bwRfu3SM/+Y9B06vjwqOjd9YmmO+EwBVvhWSdHTaRAk=";
+    tag = version;
+    hash = "sha256-4/vKf5RwWbiFYKCQo4kAQzXLM85L4CwaL/MR7/xTkH8=";
   };
 
   nativeBuildInputs = [
@@ -35,9 +36,7 @@ buildPythonPackage rec {
     torch
   ];
 
-  pythonImportsCheck = [
-    "rotary_embedding_torch"
-  ];
+  pythonImportsCheck = [ "rotary_embedding_torch" ];
 
   doCheck = false; # no tests
 

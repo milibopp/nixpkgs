@@ -1,4 +1,9 @@
-{ lib, fetchFromGitHub, beets, python3Packages }:
+{
+  lib,
+  fetchFromGitHub,
+  beets,
+  python3Packages,
+}:
 
 python3Packages.buildPythonApplication rec {
   pname = "beets-copyartifacts";
@@ -15,15 +20,21 @@ python3Packages.buildPythonApplication rec {
     sed -i -e '/install_requires/,/\]/{/beets/d}' setup.py
     sed -i -e '/namespace_packages/d' setup.py
     printf 'from pkgutil import extend_path\n__path__ = extend_path(__path__, __name__)\n' >beetsplug/__init__.py
+
+    # beets v2.1.0 compat
+    # <https://github.com/beetbox/beets/commit/0e87389994a9969fa0930ffaa607609d02e286a8>
+    sed -i -e 's/util\.py3_path/os.fsdecode/g' tests/_common.py
   '';
 
   pytestFlagsArray = [ "-r fEs" ];
 
-  nativeCheckInputs = with python3Packages; [
-    pytestCheckHook
+  nativeCheckInputs = [
+    python3Packages.pytestCheckHook
     beets
-    six
   ];
+  preCheck = ''
+    export HOME=$(mktemp -d)
+  '';
 
   meta = {
     description = "Beets plugin to move non-music files during the import process";

@@ -1,13 +1,14 @@
-{ lib
-, stdenv
-, rustPlatform
-, fetchFromGitHub
-, help2man
-, installShellFiles
-, libiconv
-, Security
-, CoreServices
-, nix-update-script
+{
+  lib,
+  stdenv,
+  rustPlatform,
+  fetchFromGitHub,
+  help2man,
+  installShellFiles,
+  libiconv,
+  Security,
+  CoreServices,
+  nix-update-script,
 }:
 
 let
@@ -15,23 +16,23 @@ let
 in
 rustPlatform.buildRustPackage rec {
   pname = "texlab";
-  version = "5.12.1";
+  version = "5.22.1";
 
   src = fetchFromGitHub {
     owner = "latex-lsp";
     repo = "texlab";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-/M6j33KNX4leLPJg6qLubejhjacXsd7NZ77wuGtdbw8=";
+    tag = "v${version}";
+    hash = "sha256-ldbWENQa7ZiBSx1b1JgChIgadqzHEPvUyOdHVgW6MSU=";
   };
 
-  cargoHash = "sha256-xslsj5mE7NOZYVwuxJ06hZAUWS3mhgzrl73P47mjkTY=";
+  useFetchCargoVendor = true;
+  cargoHash = "sha256-omMisd2lY9BPIp/0yJ5Eg3pAIvwIWcEJE0ygTj2yqwo=";
 
   outputs = [ "out" ] ++ lib.optional (!isCross) "man";
 
-  nativeBuildInputs = [ installShellFiles ]
-    ++ lib.optional (!isCross) help2man;
+  nativeBuildInputs = [ installShellFiles ] ++ lib.optional (!isCross) help2man;
 
-  buildInputs = lib.optionals stdenv.isDarwin [
+  buildInputs = lib.optionals stdenv.hostPlatform.isDarwin [
     libiconv
     Security
     CoreServices
@@ -41,7 +42,7 @@ rustPlatform.buildRustPackage rec {
   # generate the man page
   postInstall = lib.optionalString (!isCross) ''
     # TexLab builds man page separately in CI:
-    # https://github.com/latex-lsp/texlab/blob/v5.12.0/.github/workflows/publish.yml#L117-L121
+    # https://github.com/latex-lsp/texlab/blob/v5.21.0/.github/workflows/publish.yml#L110-L114
     help2man --no-info "$out/bin/texlab" > texlab.1
     installManPage texlab.1
   '';
@@ -49,11 +50,15 @@ rustPlatform.buildRustPackage rec {
   passthru.updateScript = nix-update-script { };
 
   meta = with lib; {
-    description = "An implementation of the Language Server Protocol for LaTeX";
+    description = "Implementation of the Language Server Protocol for LaTeX";
     homepage = "https://github.com/latex-lsp/texlab";
     changelog = "https://github.com/latex-lsp/texlab/blob/v${version}/CHANGELOG.md";
     license = licenses.mit;
-    maintainers = with maintainers; [ doronbehar kira-bruneau ];
+    maintainers = with maintainers; [
+      doronbehar
+      kira-bruneau
+    ];
     platforms = platforms.all;
+    mainProgram = "texlab";
   };
 }

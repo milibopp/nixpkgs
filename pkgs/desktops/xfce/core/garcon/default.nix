@@ -1,13 +1,21 @@
-{ lib, mkXfceDerivation, gobject-introspection, gtk3, libxfce4ui, libxfce4util }:
+{ stdenv, lib, mkXfceDerivation, gtk3, libxfce4ui, libxfce4util,
+  withIntrospection ?
+    lib.meta.availableOn stdenv.hostPlatform gobject-introspection
+    && stdenv.hostPlatform.emulatorAvailable buildPackages,
+  buildPackages,
+  gobject-introspection,
+}:
 
 mkXfceDerivation {
   category = "xfce";
   pname = "garcon";
-  version = "4.18.1";
+  version = "4.20.0";
 
-  sha256 = "sha256-0EcmI+C8B7oQl/cpbFeLjof1fnUi09nZAA5uJ0l15V4=";
+  sha256 = "sha256-MeZkDb2QgGMaloO6Nwlj9JmZByepd6ERqpAWqrVv1xw=";
 
-  nativeBuildInputs = [ gobject-introspection ];
+  nativeBuildInputs = lib.optionals withIntrospection [
+    gobject-introspection
+  ];
 
   buildInputs = [ gtk3 libxfce4ui libxfce4util ];
 

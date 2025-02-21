@@ -1,54 +1,63 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchPypi
-, hatch-jupyter-builder
-, hatchling
-, jupyter-client
-, markdown-it-py
-, mdit-py-plugins
-, nbformat
-, notebook
-, packaging
-, pytest-xdist
-, pytestCheckHook
-, pythonOlder
-, pyyaml
-, toml
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  hatch-jupyter-builder,
+  hatchling,
+
+  # dependencies
+  markdown-it-py,
+  mdit-py-plugins,
+  nbformat,
+  packaging,
+  pyyaml,
+  pythonOlder,
+  tomli,
+
+  # tests
+  jupyter-client,
+  notebook,
+  pytest-xdist,
+  pytestCheckHook,
+  versionCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "jupytext";
-  version = "1.16.0";
+  version = "1.16.6";
   pyproject = true;
 
-  disabled = pythonOlder "3.8";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-lMfmd3XpDheSw5q3/KTgRZv3w1ZWEj6Nwunhs+lTuvg=";
+  src = fetchFromGitHub {
+    owner = "mwouts";
+    repo = "jupytext";
+    tag = "v${version}";
+    hash = "sha256-MkFTIHXpe0rYBJsaXwFqDEao+wSL2tG4JtPx1CjHGoY=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     hatch-jupyter-builder
     hatchling
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     markdown-it-py
     mdit-py-plugins
     nbformat
     packaging
     pyyaml
-    toml
-  ];
+  ] ++ lib.optionals (pythonOlder "3.11") [ tomli ];
 
   nativeCheckInputs = [
     jupyter-client
     notebook
     pytest-xdist
     pytestCheckHook
+    versionCheckHook
   ];
+  versionCheckProgramArg = [ "--version" ];
 
   preCheck = ''
     # Tests that use a Jupyter notebook require $HOME to be writable
@@ -57,10 +66,11 @@ buildPythonPackage rec {
   '';
 
   disabledTestPaths = [
+    # Requires the `git` python module
     "tests/external"
   ];
 
-  disabledTests = lib.optionals stdenv.isDarwin [
+  disabledTests = lib.optionals stdenv.hostPlatform.isDarwin [
     # requires access to trash
     "test_load_save_rename"
   ];
@@ -70,12 +80,12 @@ buildPythonPackage rec {
     "jupytext.cli"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Jupyter notebooks as Markdown documents, Julia, Python or R scripts";
     homepage = "https://github.com/mwouts/jupytext";
-    changelog = "https://github.com/mwouts/jupytext/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = teams.jupyter.members;
+    changelog = "https://github.com/mwouts/jupytext/blob/${src.tag}/CHANGELOG.md";
+    license = lib.licenses.mit;
+    maintainers = lib.teams.jupyter.members;
     mainProgram = "jupytext";
   };
 }

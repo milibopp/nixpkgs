@@ -35,6 +35,7 @@ my $outDir = "/etc/nixos";
 my $rootDir = ""; # = /
 my $force = 0;
 my $noFilesystems = 0;
+my $flake = 0;
 my $showHardwareConfig = 0;
 
 for (my $n = 0; $n < scalar @ARGV; $n++) {
@@ -63,6 +64,9 @@ for (my $n = 0; $n < scalar @ARGV; $n++) {
     }
     elsif ($arg eq "--show-hardware-config") {
         $showHardwareConfig = 1;
+    }
+    elsif ($arg eq "--flake") {
+        $flake = 1;
     }
     else {
         die "$0: unrecognized argument ‘$arg’\n";
@@ -257,7 +261,7 @@ foreach my $path (glob "/sys/class/{block,mmc_host}/*") {
 
 # Add bcache module, if needed.
 my @bcacheDevices = glob("/dev/bcache*");
-@bcacheDevices = grep(!qr#dev/bcachefs.*#, @bcacheDevices);
+@bcacheDevices = grep(!m#dev/bcachefs.*#, @bcacheDevices);
 if (scalar @bcacheDevices > 0) {
     push @initrdAvailableKernelModules, "bcache";
 }
@@ -450,6 +454,17 @@ EOF
                 die "Btrfs did not return a path for the subvolume at $mountPoint\n";
             }
             push @extraOptions, "subvol=$paths[0]";
+        }
+    }
+
+    # Preserve umask (fmask, dmask) settings for vfat filesystems.
+    # (The default is to mount these world-readable, but that's a security risk
+    # for the EFI System Partition.)
+    if ($fsType eq "vfat") {
+        for (@superOptions) {
+            if ($_ =~ /fmask|dmask/) {
+                push @extraOptions, $_;
+            }
         }
     }
 
@@ -649,6 +664,19 @@ if ($showHardwareConfig) {
     print STDERR "writing $fn...\n";
     mkpath($outDir, 0, 0755);
     write_file($fn, $hwConfig);
+
+    $fn = "$outDir/flake.nix";
+    if ($flake) {
+        if ($force || ! -e $fn) {
+            print STDERR "writing $fn...\n";
+            mkpath($outDir, 0, 0755);
+            write_file($fn, <<EOF);
+            @flake@
+EOF
+        } else {
+            print STDERR "warning: not overwriting existing $fn\n";
+        }
+    }
 
     # Generate a basic configuration.nix, unless one already exists.
     $fn = "$outDir/configuration.nix";

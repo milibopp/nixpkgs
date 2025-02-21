@@ -1,23 +1,24 @@
-{ lib
-, fetchFromGitHub
-, buildGoModule
-, makeWrapper
-, go
-, buf
+{
+  lib,
+  fetchFromGitHub,
+  buildGoModule,
+  makeWrapper,
+  go,
+  buf,
 }:
 
 buildGoModule rec {
   pname = "ignite-cli";
-  version = "28.1.0";
+  version = "28.7.0";
 
   src = fetchFromGitHub {
     repo = "cli";
     owner = "ignite";
     rev = "v${version}";
-    hash = "sha256-/MsBVJ3aqlNfGtktjqDKGdibbZea/bdLuQbXnP3Ag0k=";
+    hash = "sha256-/gBykwBlZsHUWCJ01rdluU10xuEEmPmCfzSWlO6znW8=";
   };
 
-  vendorHash = "sha256-VAXzwZ79TGvAoSRzjupL9XkXBn05tvaPCtRuxhls6XE=";
+  vendorHash = "sha256-ks9wZUIwN0dOcXxxRk1Amxd0TPJBbLfKC9lzV4IMdjk=";
 
   nativeBuildInputs = [ makeWrapper ];
 
@@ -29,7 +30,12 @@ buildGoModule rec {
 
   # Required for commands like `ignite version`, `ignite network` and others
   postFixup = ''
-    wrapProgram $out/bin/ignite --prefix PATH : ${lib.makeBinPath [ go buf ]}
+    wrapProgram $out/bin/ignite --prefix PATH : ${
+      lib.makeBinPath [
+        go
+        buf
+      ]
+    }
   '';
 
   meta = with lib; {

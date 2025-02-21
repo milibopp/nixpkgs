@@ -1,12 +1,13 @@
-{ lib
-, aiohttp
-, buildPythonPackage
-, colorlog
-, fetchFromGitHub
-, python-dateutil
-, pythonOlder
-, requests
-, setuptools-scm
+{
+  lib,
+  aiohttp,
+  buildPythonPackage,
+  colorlog,
+  fetchFromGitHub,
+  python-dateutil,
+  pythonOlder,
+  requests,
+  setuptools-scm,
 }:
 
 buildPythonPackage rec {
@@ -19,7 +20,7 @@ buildPythonPackage rec {
   src = fetchFromGitHub {
     owner = "automicus";
     repo = "PyISY";
-    rev = "refs/tags/v${version}";
+    tag = "v${version}";
     hash = "sha256-OvWdKr8RlXRnAUMHSPhJDacvKeRa8QGPmGPQWLG2ouk=";
   };
 
@@ -28,9 +29,7 @@ buildPythonPackage rec {
       --replace 'version_format="{tag}"' 'version="${version}"'
   '';
 
-  nativeBuildInputs = [
-    setuptools-scm
-  ];
+  nativeBuildInputs = [ setuptools-scm ];
 
   propagatedBuildInputs = [
     aiohttp

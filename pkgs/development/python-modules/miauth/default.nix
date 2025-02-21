@@ -1,60 +1,50 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, pythonRelaxDepsHook
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pythonOlder,
 
-# build-system
-, setuptools
+  # build-system
+  setuptools,
 
-# dependencies
-, bluepy
-, cryptography
+  # dependencies
+  bluepy,
+  cryptography,
 
-# tests
-, pytestCheckHook
+  # checks
+  pytestCheckHook,
 }:
 
-buildPythonPackage {
+buildPythonPackage rec {
   pname = "miauth";
-  version = "0.9.1";
+  version = "0.9.7";
   pyproject = true;
 
   disabled = pythonOlder "3.10";
 
-  src = fetchFromGitHub {
-    owner = "dnandha";
-    repo = "miauth";
-    # Release is not tagged properly, https://github.com/dnandha/miauth/issues/15
-    # rev = "refs/tags/${version}";
-    rev = "refs/tags/release";
-    hash = "sha256-+aoY0Eyd9y7xQTA3uSC6YIZisViilsHlFaOXmhPMcBY=";
+  src = fetchPypi {
+    inherit pname version;
+    hash = "sha256-2/4nFInpdY8fb/b+sXhgT6ZPtEgBV+KHMyLnxIp6y/U=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-    pythonRelaxDepsHook
-  ];
+  build-system = [ setuptools ];
 
-  pythonRelaxDeps = [
-    "cryptography"
-  ];
+  pythonRelaxDeps = [ "cryptography" ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     bluepy
     cryptography
   ];
 
-  pythonImportsCheck = [
-    "miauth"
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  doCheck = false; # no tests
+  pythonImportsCheck = [ "miauth" ];
 
   meta = with lib; {
     description = "Authenticate and interact with Xiaomi devices over BLE";
     homepage = "https://github.com/dnandha/miauth";
     license = licenses.agpl3Only;
     maintainers = with maintainers; [ fab ];
+    mainProgram = "miauth";
   };
 }

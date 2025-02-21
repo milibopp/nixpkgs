@@ -1,4 +1,11 @@
-{ lib, stdenv, fetchFromGitHub, openssl, lua, pcre2 }:
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  openssl,
+  lua,
+  pcre2,
+}:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "imapfilter";
@@ -15,11 +22,16 @@ stdenv.mkDerivation (finalAttrs: {
     "PREFIX=$(out)"
   ];
 
-  buildInputs = [ openssl pcre2 lua ];
+  buildInputs = [
+    openssl
+    pcre2
+    lua
+  ];
 
   meta = {
     homepage = "https://github.com/lefcha/imapfilter";
     description = "Mail filtering utility";
+    mainProgram = "imapfilter";
     license = lib.licenses.mit;
     platforms = lib.platforms.unix;
     maintainers = with lib.maintainers; [ doronbehar ];

@@ -1,17 +1,17 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, octodns
-, pytestCheckHook
-, pythonOlder
-, dnspython
-, setuptools
-, wheel
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  octodns,
+  pytestCheckHook,
+  pythonOlder,
+  dnspython,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "octodns-bind";
-  version = "0.0.5";
+  version = "0.0.6";
   pyproject = true;
 
   disabled = pythonOlder "3.8";
@@ -20,12 +20,11 @@ buildPythonPackage rec {
     owner = "octodns";
     repo = "octodns-bind";
     rev = "v${version}";
-    hash = "sha256-0ia/xYarrOiLZa8KU0s5wtCGtXIyxSl6OcwNkSJb/rA=";
+    hash = "sha256-IxZr7Wds8wLfJg6rqCtJ59Sg/mCIJ1g9jDJ8CTM7O8w=";
   };
 
   nativeBuildInputs = [
     setuptools
-    wheel
   ];
 
   propagatedBuildInputs = [
@@ -46,6 +45,6 @@ buildPythonPackage rec {
     homepage = "https://github.com/octodns/octodns-bind";
     changelog = "https://github.com/octodns/octodns-bind/blob/${src.rev}/CHANGELOG.md";
     license = licenses.mit;
-    maintainers = with maintainers; [ janik ];
+    maintainers = [ ];
   };
 }

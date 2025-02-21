@@ -1,28 +1,30 @@
-{ lib
-, fetchurl
-, gdk-pixbuf
-, gobject-introspection
-, gtk3
-, libnotify
-, libsecret
-, networkmanager
-, python3Packages
-, wrapGAppsHook
+{
+  lib,
+  fetchurl,
+  gdk-pixbuf,
+  gobject-introspection,
+  gtk3,
+  libnotify,
+  libsecret,
+  networkmanager,
+  python3Packages,
+  wrapGAppsHook3,
 }:
 
 python3Packages.buildPythonApplication rec {
   pname = "eduvpn-client";
-  version = "4.2.0";
+  version = "4.4.0";
+  format = "pyproject";
 
   src = fetchurl {
     url = "https://github.com/eduvpn/python-${pname}/releases/download/${version}/python-${pname}-${version}.tar.xz";
-    hash = "sha256-W5z0ykrwWANZmW+lQt6m+BmYPI0cutsamx8V2JrpeHA=";
+    hash = "sha256-IHRIjryAIeGcFqz5BMWsE0/gClaSmnwWhjc1f1c69vk=";
   };
 
   nativeBuildInputs = [
     gdk-pixbuf
     gobject-introspection
-    wrapGAppsHook
+    wrapGAppsHook3
   ];
 
   buildInputs = [
@@ -38,12 +40,6 @@ python3Packages.buildPythonApplication rec {
     setuptools
   ];
 
-  patches = [ ./nix-python-prefix.patch ];
-
-  postPatch = ''
-    substituteInPlace eduvpn/utils.py --subst-var-by out $out
-  '';
-
   checkInputs = with python3Packages; [
     pytestCheckHook
   ];
@@ -54,7 +50,10 @@ python3Packages.buildPythonApplication rec {
     homepage = "https://github.com/eduvpn/python-eduvpn-client";
     license = licenses.gpl3Plus;
     mainProgram = "eduvpn-gui";
-    maintainers = with maintainers; [ benneti jwijenbergh ];
+    maintainers = with maintainers; [
+      benneti
+      jwijenbergh
+    ];
     platforms = platforms.linux;
   };
 }

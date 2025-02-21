@@ -1,23 +1,23 @@
-{ lib, buildDunePackage
-, git
-, mimic
-, paf
-, ca-certs-nss
-, fmt
-, ipaddr
-, logs
-, lwt
-, mirage-clock
-, mirage-time
-, result
-, rresult
-, tls
-, uri
-, bigstringaf
-, domain-name
-, httpaf
-, mirage-flow
-, tls-mirage
+{
+  buildDunePackage,
+  git,
+  mimic,
+  paf,
+  ca-certs-nss,
+  fmt,
+  ipaddr,
+  logs,
+  lwt,
+  mirage-clock,
+  mirage-time,
+  rresult,
+  tls,
+  uri,
+  bigstringaf,
+  domain-name,
+  httpaf,
+  mirage-flow,
+  tls-mirage,
 }:
 
 buildDunePackage {
@@ -34,7 +34,6 @@ buildDunePackage {
     ca-certs-nss
     fmt
     lwt
-    result
     rresult
     ipaddr
     logs
@@ -50,6 +49,6 @@ buildDunePackage {
   ];
 
   meta = git.meta // {
-    description = "A package to use HTTP-based ocaml-git with MirageOS backend";
+    description = "Package to use HTTP-based ocaml-git with MirageOS backend";
   };
 }

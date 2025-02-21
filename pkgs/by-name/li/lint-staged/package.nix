@@ -1,17 +1,23 @@
-{ lib, buildNpmPackage, fetchFromGitHub, testers, lint-staged }:
+{
+  lib,
+  buildNpmPackage,
+  fetchFromGitHub,
+  testers,
+  lint-staged,
+}:
 
 buildNpmPackage rec {
   pname = "lint-staged";
-  version = "15.2.0";
+  version = "15.4.3";
 
   src = fetchFromGitHub {
     owner = "okonet";
     repo = "lint-staged";
     rev = "v${version}";
-    hash = "sha256-Vziz8pV3pd1Rp6X6mHzyD22Z3q5LJJTXQ8kFuHpVgKc=";
+    hash = "sha256-TBh0qqe2sHSisBMU86TlGhSVrBFY9rgYs5uGSmSTT4g=";
   };
 
-  npmDepsHash = "sha256-BKgncl53MKFDASXo6I2Vn3v54iTL/h9gykJ3PWNUGQU=";
+  npmDepsHash = "sha256-p0+Feii4riQ4TtNAQtPZ1bH/yA8q1tjm15IKNi1Ksvk=";
 
   dontNpmBuild = true;
 

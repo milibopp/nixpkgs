@@ -1,37 +1,33 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, buildbot
-, stdenv
+{
+  lib,
+  buildPythonPackage,
+  buildbot,
+  stdenv,
 
-# patch
-, coreutils
+  # patch
+  coreutils,
 
-# propagates
-, autobahn
-, future
-, msgpack
-, twisted
+  # propagates
+  autobahn,
+  msgpack,
+  twisted,
 
-# tests
-, parameterized
-, psutil
-, setuptools-trial
+  # tests
+  parameterized,
+  psutil,
+  setuptools-trial,
 
-# passthru
-, nixosTests
+  # passthru
+  nixosTests,
 }:
 
-buildPythonPackage (rec {
-  pname = "buildbot-worker";
-  inherit (buildbot) version;
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-jihAPEzeegUEa/BZ93De7728IXjL7BkrwfPk5G6rnUw=";
-  };
+buildPythonPackage ({
+  pname = "buildbot_worker";
+  inherit (buildbot) src version;
 
   postPatch = ''
+    cd worker
+    touch buildbot_worker/py.typed
     substituteInPlace buildbot_worker/scripts/logwatcher.py \
       --replace /usr/bin/tail "${coreutils}/bin/tail"
   '';
@@ -42,7 +38,6 @@ buildPythonPackage (rec {
 
   propagatedBuildInputs = [
     autobahn
-    future
     msgpack
     twisted
   ];
@@ -61,6 +56,5 @@ buildPythonPackage (rec {
     description = "Buildbot Worker Daemon";
     maintainers = teams.buildbot.members;
     license = licenses.gpl2;
-    broken = stdenv.isDarwin; # https://hydra.nixos.org/build/243534318/nixlog/6
   };
 })

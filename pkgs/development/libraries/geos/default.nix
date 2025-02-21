@@ -1,22 +1,30 @@
-{ lib
-, stdenv
-, callPackage
-, fetchurl
-, testers
+{
+  lib,
+  stdenv,
+  callPackage,
+  fetchFromGitHub,
+  testers,
 
-, cmake
+  cmake,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "geos";
-  version = "3.12.1";
+  version = "3.13.0";
 
-  src = fetchurl {
-    url = "https://download.osgeo.org/geos/${finalAttrs.pname}-${finalAttrs.version}.tar.bz2";
-    hash = "sha256-1up+SSIktRGT6CRP4+wXxNRNB3fzwyyk+xcRQFSaDQM=";
+  src = fetchFromGitHub {
+    owner = "libgeos";
+    repo = "geos";
+    tag = finalAttrs.version;
+    hash = "sha256-WcE5dbfbeq9uCRgfVgiA3MTOisRpilXxjquEM5aKTCc=";
   };
 
   nativeBuildInputs = [ cmake ];
+
+  # https://github.com/libgeos/geos/issues/930
+  cmakeFlags = lib.optionals (stdenv.hostPlatform.isDarwin && stdenv.hostPlatform.isx86_64) [
+    "-DCMAKE_CTEST_ARGUMENTS=--exclude-regex;unit-geom-Envelope"
+  ];
 
   doCheck = true;
 

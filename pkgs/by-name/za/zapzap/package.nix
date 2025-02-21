@@ -1,29 +1,21 @@
-{ lib
-, fetchFromGitHub
-, python3Packages
-, qt6
-, fetchpatch
+{
+  lib,
+  fetchFromGitHub,
+  python3Packages,
+  qt6,
 }:
 
 python3Packages.buildPythonApplication rec {
   pname = "zapzap";
-  version = "4.5.5.2";
+  version = "5.3.9";
   format = "setuptools";
 
   src = fetchFromGitHub {
-    owner = "zapzap-linux";
+    owner = "rafatosta";
     repo = "zapzap";
-    rev = version;
-    hash = "sha256-8IeFGTI+5kbeFGqH5DpHCY8pqzGhE48hPCEIKIe7jAM=";
+    tag = version;
+    hash = "sha256-AiFEuoMwVokAZya2rnSf5fYjCJyQQL3uD87NGFUMy6E=";
   };
-
-  patches = [
-    # fixes that the tray icon was not installed
-    (fetchpatch {
-      url = "https://github.com/zapzap-linux/zapzap/pull/25/commits/4107b019555492e2c2692dd4c40553503047e6a8.patch";
-      hash = "sha256-NQPGPXYFhVwsPXopEELG1n/f8yUj/74OFE1hTyt93Ng=";
-    })
-  ];
 
   nativeBuildInputs = with python3Packages; [
     setuptools
@@ -60,11 +52,11 @@ python3Packages.buildPythonApplication rec {
   doCheck = false;
 
   meta = with lib; {
-    description = "WhatsApp desktop application for Linux";
-    homepage = "https://zapzap-linux.github.io/";
+    description = "WhatsApp desktop application written in Pyqt6 + PyQt6-WebEngine.";
+    homepage = "https://rtosta.com/zapzap-web/";
     mainProgram = "zapzap";
     license = licenses.gpl3Only;
-    changelog = "https://github.com/zapzap-linux/zapzap/releases/tag/${version}";
+    changelog = "https://github.com/rafatosta/zapzap/releases/tag/${version}";
     maintainers = [ maintainers.eymeric ];
   };
 }

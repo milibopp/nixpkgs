@@ -1,14 +1,15 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, flask
-, pytestCheckHook
-, python-http-client
-, pythonOlder
-, pyyaml
-, starkbank-ecdsa
-, six
-, werkzeug
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  flask,
+  pytestCheckHook,
+  python-http-client,
+  pythonOlder,
+  pyyaml,
+  starkbank-ecdsa,
+  six,
+  werkzeug,
 }:
 
 buildPythonPackage rec {
@@ -21,7 +22,7 @@ buildPythonPackage rec {
   src = fetchFromGitHub {
     owner = pname;
     repo = "sendgrid-python";
-    rev = "refs/tags/${version}";
+    tag = version;
     hash = "sha256-wcQLdU80pcyEplzL8lnehtToqYiTrX1n5TjmK5zturE=";
   };
 
@@ -44,9 +45,7 @@ buildPythonPackage rec {
     "live_test.py"
   ];
 
-  pythonImportsCheck = [
-    "sendgrid"
-  ];
+  pythonImportsCheck = [ "sendgrid" ];
 
   meta = with lib; {
     description = "Python client for SendGrid";

@@ -1,36 +1,34 @@
-{ stdenv, callPackage, lib, fetchurl, fetchpatch, fetchFromGitHub, installShellFiles
+{ stdenv, callPackage, lib, fetchurl, fetchFromGitHub, installShellFiles
 , runCommand, runCommandCC, makeWrapper, recurseIntoAttrs
 # this package (through the fixpoint glass)
 , bazel_self
-, lr, xe, zip, unzip, bash, writeCBin, coreutils
+, lr, xe, zip, unzip, bash, coreutils
 , which, gawk, gnused, gnutar, gnugrep, gzip, findutils
 , diffutils, gnupatch
 # updater
 , python3, writeScript
 # Apple dependencies
-, cctools, libcxx, CoreFoundation, CoreServices, Foundation
+, cctools, libcxx, sigtool
 # Allow to independently override the jdks used to build and run respectively
 , buildJdk, runJdk
 , runtimeShell
 # Always assume all markers valid (this is needed because we remove markers; they are non-deterministic).
 # Also, don't clean up environment variables (so that NIX_ environment variables are passed to compilers).
 , enableNixHacks ? false
-, gcc-unwrapped
-, autoPatchelfHook
 , file
-, substituteAll
+, replaceVars
 , writeTextFile
 , writeShellApplication
 , makeBinaryWrapper
 }:
 
 let
-  version = "6.4.0";
+  version = "6.5.0";
   sourceRoot = ".";
 
   src = fetchurl {
     url = "https://github.com/bazelbuild/bazel/releases/download/${version}/bazel-${version}-dist.zip";
-    hash = "sha256-vYj/YCyLuynugroqaxKtCS1R7GaMZXf5Yo8Y5I/05R4=";
+    hash = "sha256-/InakZQVKJ8p5P8YpeAScOzppv6Dy2CWchi6xKO7PtI=";
   };
 
   # Update with
@@ -179,7 +177,7 @@ let
 
 in
 stdenv.mkDerivation rec {
-  pname = "bazel";
+  pname = "bazel${ lib.optionalString enableNixHacks "-hacks" }";
   inherit version;
 
   meta = with lib; {
@@ -205,6 +203,27 @@ stdenv.mkDerivation rec {
     # the prebuilt one does not work in nix world.
     ./java_toolchain.patch
 
+    # Bazel integrates with apple IOKit to inhibit and track system sleep.
+    # Inside the darwin sandbox, these API calls are blocked, and bazel
+    # crashes. It seems possible to allow these APIs inside the sandbox, but it
+    # feels simpler to patch bazel not to use it at all. So our bazel is
+    # incapable of preventing system sleep, which is a small price to pay to
+    # guarantee that it will always run in any nix context.
+    #
+    # See also ./bazel_darwin_sandbox.patch in bazel_5. That patch uses
+    # NIX_BUILD_TOP env var to conditionnally disable sleep features inside the
+    # sandbox.
+    #
+    # If you want to investigate the sandbox profile path,
+    # IORegisterForSystemPower can be allowed with
+    #
+    #     propagatedSandboxProfile = ''
+    #       (allow iokit-open (iokit-user-client-class "RootDomainUserClient"))
+    #     '';
+    #
+    # I do not know yet how to allow IOPMAssertion{CreateWithName,Release}
+    ./darwin_sleep.patch
+
     # On Darwin, the last argument to gcc is coming up as an empty string. i.e: ''
     # This is breaking the build of any C target. This patch removes the last
     # argument if it's found to be an empty string.
@@ -220,8 +239,7 @@ stdenv.mkDerivation rec {
     # This patch removes using the -fobjc-arc compiler option and makes the code
     # compile without automatic reference counting. Caveat: this leaks memory, but
     # we accept this fact because xcode_locator is only a short-lived process used during the build.
-    (substituteAll {
-      src = ./no-arc.patch;
+    (replaceVars ./no-arc.patch {
       multiBinPatch = if stdenv.hostPlatform.system == "aarch64-darwin" then "arm64" else "x86_64";
     })
 
@@ -231,20 +249,17 @@ stdenv.mkDerivation rec {
     # This is non hermetic on non-nixos systems. On NixOS, bazel cannot find the required binaries.
     # So we are replacing this bazel paths by defaultShellPath,
     # improving hermeticity and making it work in nixos.
-    (substituteAll {
-      src = ../strict_action_env.patch;
+    (replaceVars ../strict_action_env.patch {
       strictActionEnvPatch = defaultShellPath;
     })
 
-    (substituteAll {
-      src = ./actions_path.patch;
+    (replaceVars ./actions_path.patch {
       actionsPathPatch = defaultShellPath;
     })
 
     # bazel reads its system bazelrc in /etc
     # override this path to a builtin one
-    (substituteAll {
-      src = ../bazel_rc.patch;
+    (replaceVars ../bazel_rc.patch {
       bazelSystemBazelRCPath = bazelRC;
     })
   ] ++ lib.optional enableNixHacks ./nix-hacks.patch;
@@ -289,7 +304,11 @@ stdenv.mkDerivation rec {
       bazelTest = { name, bazelScript, workspaceDir, bazelPkg, buildInputs ? [] }:
         let
           be = extracted bazelPkg;
-        in runLocal name { inherit buildInputs; } (
+        in runLocal name {
+          inherit buildInputs;
+          # Necessary for the tests to pass on Darwin with sandbox enabled.
+          __darwinAllowLocalNetworking = true;
+        } (
           # skip extraction caching on Darwin, because nobody knows how Darwin works
           (lib.optionalString (!stdenv.hostPlatform.isDarwin) ''
             # set up home with pre-unpacked bazel
@@ -392,10 +411,6 @@ stdenv.mkDerivation rec {
       # Explicitly configure gcov since we don't have it on Darwin, so autodetection fails
       export GCOV=${coreutils}/bin/false
 
-      # Framework search paths aren't added by bintools hook
-      # https://github.com/NixOS/nixpkgs/pull/41914
-      export NIX_LDFLAGS+=" -F${CoreFoundation}/Library/Frameworks -F${CoreServices}/Library/Frameworks -F${Foundation}/Library/Frameworks"
-
       # libcxx includes aren't added by libcxx hook
       # https://github.com/NixOS/nixpkgs/pull/41589
       export NIX_CFLAGS_COMPILE="$NIX_CFLAGS_COMPILE -isystem ${lib.getDev libcxx}/include/c++/v1"
@@ -403,7 +418,10 @@ stdenv.mkDerivation rec {
       export NIX_CFLAGS_COMPILE+=" -Wno-deprecated-builtins -Wno-gnu-offsetof-extensions"
 
       # don't use system installed Xcode to run clang, use Nix clang instead
-      sed -i -E "s;/usr/bin/xcrun (--sdk macosx )?clang;${stdenv.cc}/bin/clang $NIX_CFLAGS_COMPILE $(bazelLinkFlags) -framework CoreFoundation;g" \
+      sed -i -E \
+        -e "s;/usr/bin/xcrun (--sdk macosx )?clang;${stdenv.cc}/bin/clang $NIX_CFLAGS_COMPILE $(bazelLinkFlags) -framework CoreFoundation;g" \
+        -e "s;/usr/bin/codesign;CODESIGN_ALLOCATE=${cctools}/bin/${cctools.targetPrefix}codesign_allocate ${sigtool}/bin/codesign;" \
+        -e "s;env -i codesign;env -i CODESIGN_ALLOCATE=${cctools}/bin/${cctools.targetPrefix}codesign_allocate ${sigtool}/bin/codesign;" \
         scripts/bootstrap/compile.sh \
         tools/osx/BUILD
 
@@ -557,7 +575,7 @@ stdenv.mkDerivation rec {
     which
     zip
     python3.pkgs.absl-py   # Needed to build fish completion
-  ] ++ lib.optionals (stdenv.isDarwin) [ cctools libcxx CoreFoundation CoreServices Foundation ];
+  ] ++ lib.optionals (stdenv.hostPlatform.isDarwin) [ cctools libcxx sigtool ];
 
   # Bazel makes extensive use of symlinks in the WORKSPACE.
   # This causes problems with infinite symlinks if the build output is in the same location as the
@@ -593,7 +611,10 @@ stdenv.mkDerivation rec {
     ${python3}/bin/python3 ./bazel_src/scripts/generate_fish_completion.py \
         --bazel=./bazel_src/output/bazel \
         --output=./bazel_src/output/bazel-complete.fish
-
+  '' +
+  # disable execlog parser on darwin, since it fails to build
+  # see https://github.com/NixOS/nixpkgs/pull/273774#issuecomment-1865322055
+  lib.optionalString (!stdenv.hostPlatform.isDarwin) ''
     # need to change directory for bazel to find the workspace
     cd ./bazel_src
     # build execlog tooling
@@ -617,6 +638,10 @@ stdenv.mkDerivation rec {
     wrapProgram $out/bin/bazel $wrapperfile --suffix PATH : ${defaultShellPath}
     mv ./bazel_src/output/bazel $out/bin/bazel-${version}-${system}-${arch}
 
+  '' +
+  # disable execlog parser on darwin, since it fails to build
+  # see https://github.com/NixOS/nixpkgs/pull/273774#issuecomment-1865322055
+  (lib.optionalString (!stdenv.hostPlatform.isDarwin) ''
     mkdir $out/share
     cp ./bazel_src/bazel-bin/src/tools/execlog/parser_deploy.jar $out/share/parser_deploy.jar
     cat <<EOF > $out/bin/bazel-execlog
@@ -624,7 +649,7 @@ stdenv.mkDerivation rec {
     ${runJdk}/bin/java -jar $out/share/parser_deploy.jar \$@
     EOF
     chmod +x $out/bin/bazel-execlog
-
+  '') + ''
     # shell completion files
     installShellCompletion --bash \
       --name bazel.bash \
@@ -678,6 +703,13 @@ stdenv.mkDerivation rec {
     # second call succeeds because it defers to $out/bin/bazel-{version}-{os_arch}
     hello_test
 
+    ## Test that the GSON serialisation files are present
+    gson_classes=$(unzip -l $($out/bin/bazel info install_base)/A-server.jar | grep -F -c _GsonTypeAdapter.class)
+    if [ "$gson_classes" -lt 10 ]; then
+      echo "Missing GsonTypeAdapter classes in A-server.jar. Lockfile generation will not work"
+      exit 1
+    fi
+
     runHook postInstall
   '';
 
@@ -690,7 +722,7 @@ stdenv.mkDerivation rec {
     # stored non-contiguously in the binary due to gcc optimisations, which leads
     # Nix to miss the hash when scanning for dependencies
     echo "${bazelRC}" >> $out/nix-support/depends
-  '' + lib.optionalString stdenv.isDarwin ''
+  '' + lib.optionalString stdenv.hostPlatform.isDarwin ''
     echo "${cctools}" >> $out/nix-support/depends
   '';
 

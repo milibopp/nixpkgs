@@ -1,10 +1,11 @@
-{ lib
-, gitUpdater
-, fetchFromGitHub
-, buildPythonApplication
-, pythonOlder
-, requests
-, filelock
+{
+  lib,
+  gitUpdater,
+  fetchFromGitHub,
+  buildPythonApplication,
+  pythonOlder,
+  requests,
+  filelock,
 }:
 
 buildPythonApplication rec {
@@ -31,10 +32,11 @@ buildPythonApplication rec {
   pythonImportsCheck = [ "legendary" ];
 
   meta = with lib; {
-    description = "A free and open-source Epic Games Launcher alternative";
+    description = "Free and open-source Epic Games Launcher alternative";
     homepage = "https://github.com/derrod/legendary";
     license = licenses.gpl3;
     maintainers = with maintainers; [ equirosa ];
+    mainProgram = "legendary";
   };
 
   passthru.updateScript = gitUpdater { };

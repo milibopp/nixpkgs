@@ -1,12 +1,13 @@
-{ lib
-, fetchFromGitHub
-, nix-update-script
-, python3Packages
+{
+  lib,
+  fetchFromGitHub,
+  nix-update-script,
+  python3Packages,
 }:
 
 python3Packages.buildPythonApplication {
   pname = "memtree";
-  version = "unstable-2024-01-04";
+  version = "0-unstable-2024-01-04";
   pyproject = true;
 
   src = fetchFromGitHub {

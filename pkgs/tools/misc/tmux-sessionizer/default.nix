@@ -1,18 +1,22 @@
-{ lib
-, fetchFromGitHub
-, stdenv
-, rustPlatform
-, openssl
-, pkg-config
-, Security
-, testers
-, tmux-sessionizer
-}: let
+{
+  lib,
+  fetchFromGitHub,
+  stdenv,
+  rustPlatform,
+  openssl,
+  pkg-config,
+  Security,
+  testers,
+  tmux-sessionizer,
+  installShellFiles,
+}:
+let
 
   name = "tmux-sessionizer";
-  version = "0.3.2";
+  version = "0.4.4";
 
-in rustPlatform.buildRustPackage {
+in
+rustPlatform.buildRustPackage {
   pname = name;
   inherit version;
 
@@ -20,23 +24,41 @@ in rustPlatform.buildRustPackage {
     owner = "jrmoulton";
     repo = name;
     rev = "v${version}";
-    hash = "sha256-8RQ67v2Cw681zikxYnq0Pb2ybh26w8mUbHKAC4TjYWA=";
+    hash = "sha256-4xwpenoAVGKdVO3eSS4BhaEcwpNPGA5Ozie53focDlA=";
   };
 
-  cargoHash = "sha256-ZOWoUBna8U0A/sYwXMf4Z7Vi+KqM7VinWhmtO8Q0HtU=";
+  useFetchCargoVendor = true;
+  cargoHash = "sha256-NFM9tZQIR9Rw9uSlqxhbNnmwe3xqK+dv/qyJBHfEmi4=";
 
   passthru.tests.version = testers.testVersion {
     package = tmux-sessionizer;
+    version = version;
   };
 
-  nativeBuildInputs = [ pkg-config ];
-  buildInputs = [ openssl ] ++ lib.optionals stdenv.isDarwin [ Security ];
+  # Needed to get openssl-sys to use pkg-config.
+  OPENSSL_NO_VENDOR = 1;
+
+  nativeBuildInputs = [
+    pkg-config
+    installShellFiles
+  ];
+  buildInputs = [ openssl ] ++ lib.optionals stdenv.hostPlatform.isDarwin [ Security ];
+
+  postInstall = lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
+    installShellCompletion --cmd tms \
+      --bash <($out/bin/tms --generate bash) \
+      --fish <($out/bin/tms --generate fish) \
+      --zsh <($out/bin/tms --generate zsh)
+  '';
 
   meta = with lib; {
-    description = "The fastest way to manage projects as tmux sessions";
+    description = "Fastest way to manage projects as tmux sessions";
     homepage = "https://github.com/jrmoulton/tmux-sessionizer";
     license = licenses.mit;
-    maintainers = with maintainers; [ vinnymeller mrcjkb ];
+    maintainers = with maintainers; [
+      vinnymeller
+      mrcjkb
+    ];
     mainProgram = "tms";
   };
 }

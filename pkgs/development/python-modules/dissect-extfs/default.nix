@@ -1,26 +1,27 @@
-{ lib
-, buildPythonPackage
-, dissect-cstruct
-, dissect-util
-, fetchFromGitHub
-, setuptools
-, setuptools-scm
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  dissect-cstruct,
+  dissect-util,
+  fetchFromGitHub,
+  setuptools,
+  setuptools-scm,
+  pytestCheckHook,
+  pythonOlder,
 }:
 
 buildPythonPackage rec {
   pname = "dissect-extfs";
-  version = "3.7";
+  version = "3.12";
   format = "pyproject";
 
-  disabled = pythonOlder "3.7";
+  disabled = pythonOlder "3.12";
 
   src = fetchFromGitHub {
     owner = "fox-it";
     repo = "dissect.extfs";
-    rev = "refs/tags/${version}";
-    hash = "sha256-RsAWqtoarn/2sZU5dkQYt794dXGOr5fe68VgMNDBst4=";
+    tag = version;
+    hash = "sha256-i6lFqtDsqPyB0FQ5DKuYTuSenZFI0+GeOQdedov+2Nw=";
   };
 
   nativeBuildInputs = [
@@ -33,13 +34,9 @@ buildPythonPackage rec {
     dissect-util
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "dissect.extfs"
-  ];
+  pythonImportsCheck = [ "dissect.extfs" ];
 
   # Archive files seems to be corrupt
   doCheck = false;

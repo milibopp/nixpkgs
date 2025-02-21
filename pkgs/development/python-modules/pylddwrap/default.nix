@@ -1,12 +1,13 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchFromGitHub
-, icontract
-, pytestCheckHook
-, pythonOlder
-, substituteAll
-, typing-extensions
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+  icontract,
+  pytestCheckHook,
+  pythonOlder,
+  replaceVars,
+  typing-extensions,
 }:
 
 buildPythonPackage rec {
@@ -23,8 +24,7 @@ buildPythonPackage rec {
   };
 
   patches = [
-    (substituteAll {
-      src = ./replace_env_with_placeholder.patch;
+    (replaceVars ./replace_env_with_placeholder.patch {
       ldd_bin = "${stdenv.cc.bintools.libc_bin}/bin/ldd";
     })
   ];
@@ -52,6 +52,7 @@ buildPythonPackage rec {
 
   meta = with lib; {
     description = "Python wrapper around ldd *nix utility to determine shared libraries of a program";
+    mainProgram = "pylddwrap";
     homepage = "https://github.com/Parquery/pylddwrap";
     changelog = "https://github.com/Parquery/pylddwrap/blob/v${version}/CHANGELOG.rst";
     license = licenses.mit;

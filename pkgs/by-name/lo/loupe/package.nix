@@ -1,31 +1,33 @@
-{ stdenv
-, lib
-, fetchurl
-, cargo
-, desktop-file-utils
-, itstool
-, meson
-, ninja
-, pkg-config
-, jq
-, moreutils
-, rustc
-, wrapGAppsHook4
-, gtk4
-, lcms2
-, libadwaita
-, libgweather
-, glycin-loaders
-, gnome
+{
+  stdenv,
+  lib,
+  fetchurl,
+  cargo,
+  desktop-file-utils,
+  itstool,
+  meson,
+  ninja,
+  pkg-config,
+  jq,
+  moreutils,
+  rustc,
+  wrapGAppsHook4,
+  gtk4,
+  lcms2,
+  libadwaita,
+  libgweather,
+  libseccomp,
+  glycin-loaders,
+  gnome,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "loupe";
-  version = "45.3";
+  version = "47.4";
 
   src = fetchurl {
     url = "mirror://gnome/sources/loupe/${lib.versions.major finalAttrs.version}/loupe-${finalAttrs.version}.tar.xz";
-    hash = "sha256-9l8tEgjQhatf+pmN1DyS/pUictTVm1HP7MEevf/KLYY=";
+    hash = "sha256-jckmgpqcM4gAyPQytaNHJG5ty9mtLdGiTEmOr90+ias=";
   };
 
   patches = [
@@ -51,13 +53,14 @@ stdenv.mkDerivation (finalAttrs: {
     lcms2
     libadwaita
     libgweather
+    libseccomp
   ];
 
   postPatch = ''
     # Replace hash of file we patch in vendored glycin.
     jq \
-      --arg hash "$(sha256sum vendor/glycin/src/dbus.rs | cut -d' ' -f 1)" \
-      '.files."src/dbus.rs" = $hash' \
+      --arg hash "$(sha256sum vendor/glycin/src/sandbox.rs | cut -d' ' -f 1)" \
+      '.files."src/sandbox.rs" = $hash' \
       vendor/glycin/.cargo-checksum.json \
       | sponge vendor/glycin/.cargo-checksum.json
   '';
@@ -76,7 +79,8 @@ stdenv.mkDerivation (finalAttrs: {
 
   meta = with lib; {
     homepage = "https://gitlab.gnome.org/GNOME/loupe";
-    description = "A simple image viewer application written with GTK4 and Rust";
+    changelog = "https://gitlab.gnome.org/GNOME/loupe/-/blob/${finalAttrs.version}/NEWS?ref_type=tags";
+    description = "Simple image viewer application written with GTK4 and Rust";
     license = licenses.gpl3Plus;
     maintainers = with maintainers; [ jk ] ++ teams.gnome.members;
     platforms = platforms.unix;

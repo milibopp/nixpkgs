@@ -1,4 +1,10 @@
-{ stdenv, lib, fetchurl, zlib, unzip }:
+{
+  stdenv,
+  lib,
+  fetchurl,
+  zlib,
+  unzip,
+}:
 
 stdenv.mkDerivation rec {
   pname = "sauce-connect";
@@ -16,17 +22,19 @@ stdenv.mkDerivation rec {
       };
       aarch64-darwin = passthru.sources.x86_64-darwin;
     };
+    updateScript = ./update.sh;
   };
 
-  src = passthru.sources.${stdenv.hostPlatform.system}
-    or (throw "Unsupported system: ${stdenv.hostPlatform.system}");
+  src =
+    passthru.sources.${stdenv.hostPlatform.system}
+      or (throw "Unsupported system: ${stdenv.hostPlatform.system}");
 
   nativeBuildInputs = [ unzip ];
 
-  patchPhase = lib.optionalString stdenv.isLinux ''
+  patchPhase = lib.optionalString stdenv.hostPlatform.isLinux ''
     patchelf \
       --set-interpreter "$(cat $NIX_CC/nix-support/dynamic-linker)" \
-      --set-rpath "$out/lib:${lib.makeLibraryPath [zlib]}" \
+      --set-rpath "$out/lib:${lib.makeLibraryPath [ zlib ]}" \
       bin/sc
   '';
 
@@ -38,7 +46,7 @@ stdenv.mkDerivation rec {
   dontStrip = true;
 
   meta = with lib; {
-    description = "A secure tunneling app for executing tests securely when testing behind firewalls";
+    description = "Secure tunneling app for executing tests securely when testing behind firewalls";
     sourceProvenance = with lib.sourceTypes; [ binaryNativeCode ];
     license = licenses.unfree;
     homepage = "https://docs.saucelabs.com/reference/sauce-connect/";

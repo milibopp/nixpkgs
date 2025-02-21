@@ -1,36 +1,33 @@
-{ stdenv
-, lib
-, rustPlatform
-, fetchFromGitHub
-, installShellFiles
-, pkg-config
-, openssl
-, libiconv
-, testers
-, sqlx-cli
-, CoreFoundation
-, Security
-, SystemConfiguration
+{
+  stdenv,
+  lib,
+  rustPlatform,
+  fetchFromGitHub,
+  installShellFiles,
+  pkg-config,
+  openssl,
+  libiconv,
+  testers,
+  sqlx-cli,
+  CoreFoundation,
+  Security,
+  SystemConfiguration,
+  nix-update-script,
 }:
 
 rustPlatform.buildRustPackage rec {
   pname = "sqlx-cli";
-  version = "0.7.3";
+  version = "0.8.3";
 
   src = fetchFromGitHub {
     owner = "launchbadge";
     repo = "sqlx";
     rev = "v${version}";
-    hash = "sha256-AKVNyuV9jwzmsy6tHkGkLj1fhVT8XYvEn2Ip2wCKDxI=";
+    hash = "sha256-kAZUconMYUF9gZbLSg7KW3fVb7pkTq/d/yQyVzscxRw=";
   };
 
-  cargoHash = "sha256-F3FLu/n57F8psk+d0Hf+HnqV/DvEFQwRefu/4C8A1sU=";
-
-  # Prepare the Cargo.lock for offline use.
-  # See https://github.com/NixOS/nixpkgs/issues/261412
-  postConfigure = ''
-    cargo metadata --offline > /dev/null
-  '';
+  useFetchCargoVendor = true;
+  cargoHash = "sha256-d+VOtFC+OTp6MQnzEIOfIxk1ARAcNYvS7U2+IJ1hqSs=";
 
   buildNoDefaultFeatures = true;
   buildFeatures = [
@@ -50,10 +47,10 @@ rustPlatform.buildRustPackage rec {
   ];
 
   buildInputs =
-    lib.optionals stdenv.isLinux [
+    lib.optionals stdenv.hostPlatform.isLinux [
       openssl
-    ] ++
-    lib.optionals stdenv.isDarwin [
+    ]
+    ++ lib.optionals stdenv.hostPlatform.isDarwin [
       CoreFoundation
       Security
       SystemConfiguration
@@ -72,12 +69,17 @@ rustPlatform.buildRustPackage rec {
     command = "sqlx --version";
   };
 
+  passthru.updateScript = nix-update-script { };
+
   meta = with lib; {
-    description =
-      "SQLx's associated command-line utility for managing databases, migrations, and enabling offline mode with sqlx::query!() and friends.";
+    description = "SQLx's associated command-line utility for managing databases, migrations, and enabling offline mode with sqlx::query!() and friends.";
     homepage = "https://github.com/launchbadge/sqlx";
     license = licenses.asl20;
-    maintainers = with maintainers; [ greizgh xrelkd fd ];
+    maintainers = with maintainers; [
+      greizgh
+      xrelkd
+      fd
+    ];
     mainProgram = "sqlx";
   };
 }

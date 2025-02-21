@@ -1,172 +1,113 @@
-{ lib
-, fetchFromGitHub
-, python3
-, buildPythonPackage
-, fetchPypi
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  python3,
 }:
 let
   python = python3.override {
+    self = python;
     packageOverrides = self: super: {
       impacket = super.impacket.overridePythonAttrs {
-        version = "0.12.0.dev1";
+        version = "0.12.0.dev1-unstable-2023-11-30";
         src = fetchFromGitHub {
           owner = "Pennyw0rth";
           repo = "impacket";
           rev = "d370e6359a410063b2c9c68f6572c3b5fb178a38";
           hash = "sha256-Jozn4lKAnLQ2I53+bx0mFY++OH5P4KyqVmrS5XJUY3E=";
         };
+        # Fix version to be compliant with Python packaging rules
+        postPatch = ''
+          substituteInPlace setup.py \
+            --replace 'version="{}.{}.{}.{}{}"' 'version="{}.{}.{}"'
+        '';
       };
-      bloodhound-py = super.bloodhound-py.overridePythonAttrs (old: {
-        propagatedBuildInputs =
-          lib.lists.remove super.impacket old.propagatedBuildInputs
-          ++ [ self.impacket ];
-      });
     };
-  };
-
-  python-easyconfig = buildPythonPackage rec {
-    pname = "python-easyconfig";
-    version = "0.1.7";
-    src = fetchPypi {
-      inherit version;
-      pname = "Python-EasyConfig";
-      hash = "sha256-tUjxmrhQtVFU9hFi8xTj27J24R47JpUbio+gaDwGuyk=";
-    };
-    propagatedBuildInputs = with python.pkgs; [
-      six
-      pyyaml
-    ];
-  };
-
-  jsonform = buildPythonPackage rec {
-    pname = "jsonform";
-    version = "0.0.2";
-    doCheck = false;
-    src = fetchPypi {
-      inherit version;
-      pname = "JsonForm";
-      hash = "sha256-cfi3ohU44wyphLad3gTwKYDNbNwhg6GKp8oC2VCZiOY=";
-    };
-    propagatedBuildInputs = with python.pkgs; [
-      jsonschema
-    ];
-  };
-
-  jsonsir = buildPythonPackage rec {
-    pname = "jsonsir";
-    version = "0.0.2";
-    doCheck = false;
-    src = fetchPypi {
-      inherit version;
-      pname = "JsonSir";
-      hash = "sha256-QBRHxekx94h4Uc6b8kB/401aqwsUZ7sku787dg5b0/s=";
-    };
-  };
-
-  dploot = buildPythonPackage rec {
-    pname = "dploot";
-    version = "2.2.4";
-    pyproject = true;
-    src = fetchPypi {
-      inherit pname version;
-      hash = "sha256-40/5KOlEFvPL9ohCfR3kqoikpKFfJO22MToq3GhamKM=";
-    };
-    nativeBuildInputs = with python.pkgs; [
-      poetry-core
-    ];
-    propagatedBuildInputs = with python.pkgs; [
-      impacket
-      cryptography
-      pyasn1
-      lxml
-    ];
-  };
-
-  resource = buildPythonPackage rec {
-    pname = "resource";
-    version = "0.2.1";
-    doCheck = false;
-    src = fetchPypi {
-      inherit version;
-      pname = "Resource";
-      hash = "sha256-mDVKvY7+c9WhDyEJnYC774Xs7ffKIqQW/yAlClGs2RY=";
-    };
-    propagatedBuildInputs = with python.pkgs; [
-      python-easyconfig
-      jsonform
-      jsonsir
-    ];
   };
 in
 python.pkgs.buildPythonApplication rec {
   pname = "netexec";
-  version = "1.1.0";
+  version = "1.3.0";
   pyproject = true;
-  doCheck = true;
-  pythonRelaxDeps = true;
 
   src = fetchFromGitHub {
     owner = "Pennyw0rth";
     repo = "NetExec";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-cNkZoIdfrKs5ZvHGKGBybCWGwA6C4rqjCOEM+pX70S8=";
+    tag = "v${version}";
+    hash = "sha256-Pub7PAw6CTN4c/PHTPE9KcnDR2a6hSza1ODp3EWMOH0=";
   };
 
-  nativeBuildInputs = with python.pkgs; [
-    poetry-core
-    pythonRelaxDepsHook
-  ];
+  pythonRelaxDeps = true;
 
-  propagatedBuildInputs = with python.pkgs; [
-    requests
-    beautifulsoup4
-    lsassy
-    termcolor
-    msgpack
-    neo4j
-    pylnk3
-    pypsrp
-    paramiko
-    impacket
-    dsinternals
-    xmltodict
-    terminaltables
-    aioconsole
-    pywerview
-    minikerberos
-    pypykatz
-    aardwolf
-    dploot
-    bloodhound-py
-    asyauth
-    masky
-    sqlalchemy
-    aiosqlite
-    pyasn1-modules
-    rich
-    python-libnmap
-    resource
-    oscrypto
-  ];
-
-  nativeCheckInputs = with python.pkgs; [
-    pytest
+  pythonRemoveDeps = [
+    # Fail to detect dev version requirement
+    "neo4j"
   ];
 
   postPatch = ''
     substituteInPlace pyproject.toml \
-      --replace '{ git = "https://github.com/Pennyw0rth/impacket.git", branch = "gkdi" }' '"*"'
+      --replace-fail '{ git = "https://github.com/fortra/impacket.git" }' '"*"' \
+      --replace-fail '{ git = "https://github.com/Pennyw0rth/NfsClient" }' '"*"'
+  '';
 
-    substituteInPlace pyproject.toml \
-      --replace '{ git = "https://github.com/Pennyw0rth/oscrypto" }' '"*"'
+  build-system = with python.pkgs; [
+    poetry-core
+    poetry-dynamic-versioning
+  ];
+
+  dependencies = with python.pkgs; [
+    aardwolf
+    aioconsole
+    aiosqlite
+    argcomplete
+    asyauth
+    beautifulsoup4
+    bloodhound-py
+    dploot
+    dsinternals
+    impacket
+    lsassy
+    masky
+    minikerberos
+    msgpack
+    msldap
+    neo4j
+    paramiko
+    pyasn1-modules
+    pylnk3
+    pynfsclient
+    pypsrp
+    pypykatz
+    python-dateutil
+    python-libnmap
+    pywerview
+    requests
+    rich
+    sqlalchemy
+    termcolor
+    terminaltables
+    xmltodict
+  ];
+
+  nativeCheckInputs = with python.pkgs; [ pytestCheckHook ];
+
+  # Tests no longer works out-of-box with 1.3.0
+  doCheck = false;
+
+  preCheck = ''
+    export HOME=$(mktemp -d)
   '';
 
   meta = with lib; {
-    description = "Network service exploitation tool (Maintaned fork of CrackMapExec)";
+    description = "Network service exploitation tool (maintained fork of CrackMapExec)";
     homepage = "https://github.com/Pennyw0rth/NetExec";
     changelog = "https://github.com/Pennyw0rth/NetExec/releases/tag/v${version}";
-    license = with licenses; [ bsd2 ];
-    mainProgram = "nxc";
+    license = licenses.bsd2;
     maintainers = with maintainers; [ vncsb ];
+    mainProgram = "nxc";
+    # FIXME: failing fixupPhase:
+    # $ Rewriting #!/nix/store/<hash>-python3-3.11.7/bin/python3.11 to #!/nix/store/<hash>-python3-3.11.7
+    # $ /nix/store/<hash>-wrap-python-hook/nix-support/setup-hook: line 65: 47758 Killed: 9               sed -i "$f" -e "1 s^#!/nix/store/<hash>-python3-3.11.7^#!/nix/store/<hash>-python3-3.11.7^"
+    broken = stdenv.hostPlatform.isDarwin;
   };
 }

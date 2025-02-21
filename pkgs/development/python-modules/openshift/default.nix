@@ -1,13 +1,14 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, jinja2
-, kubernetes
-, ruamel-yaml
-, six
-, python-string-utils
-, pytest-bdd
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  jinja2,
+  kubernetes,
+  ruamel-yaml,
+  six,
+  python-string-utils,
+  pytest-bdd,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
@@ -18,7 +19,7 @@ buildPythonPackage rec {
   src = fetchFromGitHub {
     owner = "openshift";
     repo = "openshift-restclient-python";
-    rev = "refs/tags/v${version}";
+    tag = "v${version}";
     hash = "sha256-uLfewj7M8KNs3oL1AM18sR/WhAR2mvBfqadyhR73FP0=";
   };
 
@@ -37,7 +38,7 @@ buildPythonPackage rec {
     six
   ];
 
-  pythonImportsCheck = ["openshift"];
+  pythonImportsCheck = [ "openshift" ];
 
   nativeCheckInputs = [
     pytest-bdd

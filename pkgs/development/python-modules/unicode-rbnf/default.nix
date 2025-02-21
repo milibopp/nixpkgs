@@ -1,41 +1,36 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
 
-# build-system
-, setuptools
+  # build-system
+  setuptools,
 
-# tests
-, pytestCheckHook
+  # tests
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "unicode-rbnf";
-  version = "1.0.0";
+  version = "2.2.0";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "rhasspy";
     repo = "unicode-rbnf";
-    rev = "v${version}";
-    hash = "sha256-xwnfqWwQJKCJ4G+8eVaySTJAHxhwKYAqLHaCsxtBIl0=";
+    tag = "v${version}";
+    hash = "sha256-jVooLqy1FjCQGll53DqQ074ypjGwPRBzVmgEYXtMP+Y=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
-  pythonImportsCheck = [
-    "unicode_rbnf"
-  ];
+  pythonImportsCheck = [ "unicode_rbnf" ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   meta = with lib; {
-    changelog = "https://github.com/rhasspy/unicode-rbnf/v${version}/master/CHANGELOG.md";
-    description = "A pure Python implementation of ICU's rule-based number format engine";
+    changelog = "https://github.com/rhasspy/unicode-rbnf/blob/v${version}/CHANGELOG.md";
+    description = "Pure Python implementation of ICU's rule-based number format engine";
     homepage = "https://github.com/rhasspy/unicode-rbnf";
     license = licenses.mit;
     maintainers = with maintainers; [ hexa ];

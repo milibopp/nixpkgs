@@ -1,7 +1,7 @@
-{ deployAndroidPackage, lib, package, os, autoPatchelfHook, makeWrapper, pkgs, pkgsi686Linux, postInstall }:
+{ deployAndroidPackage, lib, stdenv, package, os, autoPatchelfHook, makeWrapper, pkgs, pkgsi686Linux, postInstall }:
 
 deployAndroidPackage {
-  inherit package os;
+  inherit package;
   nativeBuildInputs = [ makeWrapper ]
     ++ lib.optionals (os == "linux") [ autoPatchelfHook ];
   buildInputs = lib.optionals (os == "linux") (with pkgs; [
@@ -9,11 +9,13 @@ deployAndroidPackage {
       libcxx
       libGL
       libpulseaudio
+      libtiff
       libuuid
       zlib
+      libbsd
       ncurses5
+      libdrm
       stdenv.cc.cc
-      pkgsi686Linux.glibc
       expat
       freetype
       nss
@@ -30,13 +32,22 @@ deployAndroidPackage {
       libXi
       libXrender
       libXtst
-    ]);
+      libICE
+      libSM
+      libxkbfile
+    ]) ++ lib.optional (os == "linux" && stdenv.isx86_64) pkgsi686Linux.glibc;
   patchInstructions = lib.optionalString (os == "linux") ''
     addAutoPatchelfSearchPath $packageBaseDir/lib
     addAutoPatchelfSearchPath $packageBaseDir/lib64
     addAutoPatchelfSearchPath $packageBaseDir/lib64/qt/lib
     # autoPatchelf is not detecting libuuid :(
     addAutoPatchelfSearchPath ${pkgs.libuuid.out}/lib
+
+    # This library is linked against a version of libtiff that nixpkgs doesn't have
+    for file in $out/libexec/android-sdk/emulator/*/qt/plugins/imageformats/libqtiffAndroidEmu.so; do
+      patchelf --replace-needed libtiff.so.5 libtiff.so "$file" || true
+    done
+
     autoPatchelf $out
 
     # Wrap emulator so that it can load required libraries at runtime

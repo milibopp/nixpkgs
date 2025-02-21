@@ -1,11 +1,12 @@
-{ lib
-, buildPythonPackage
-, django
-, fetchFromGitHub
-, markdown
-, pillow
-, pythonOlder
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  django,
+  fetchFromGitHub,
+  markdown,
+  pillow,
+  pythonOlder,
+  setuptools,
 }:
 
 buildPythonPackage rec {
@@ -18,13 +19,11 @@ buildPythonPackage rec {
   src = fetchFromGitHub {
     owner = "neutronX";
     repo = "django-markdownx";
-    rev = "refs/tags/v${version}";
+    tag = "v${version}";
     hash = "sha256-FZPUlogVd3FMGeH1vfKHA3tXVps0ET+UCQJflpiV2lE=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
   propagatedBuildInputs = [
     django
@@ -35,9 +34,7 @@ buildPythonPackage rec {
   # tests only executeable in vagrant
   doCheck = false;
 
-  pythonImportsCheck = [
-    "markdownx"
-  ];
+  pythonImportsCheck = [ "markdownx" ];
 
   meta = with lib; {
     description = "Comprehensive Markdown plugin built for Django";

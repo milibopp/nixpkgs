@@ -1,17 +1,19 @@
-{ buildGoModule
-, fetchFromGitHub
-, installShellFiles
-, lib
+{
+  buildGoModule,
+  fetchFromGitHub,
+  installShellFiles,
+  lib,
+  stdenv,
 }:
 buildGoModule rec {
   pname = "devbox";
-  version = "0.8.5";
+  version = "0.14.0";
 
   src = fetchFromGitHub {
     owner = "jetpack-io";
     repo = pname;
     rev = version;
-    hash = "sha256-Vgke4CTVU5KW7iDyzk6P1ab5nOyICblvJtUQTISc2jg=";
+    hash = "sha256-ka3knS57Nc9LvGxr2DitcfI7VlkqsVXIi/llFFMb14g=";
   };
 
   ldflags = [
@@ -20,14 +22,16 @@ buildGoModule rec {
     "-X go.jetpack.io/devbox/internal/build.Version=${version}"
   ];
 
+  subPackages = [ "cmd/devbox" ];
+
   # integration tests want file system access
   doCheck = false;
 
-  vendorHash = "sha256-rP3vktCfmUeZhc0DaU2osVryNabsnaWWyfFYFy7W1pc=";
+  vendorHash = "sha256-og8FrWOC3Cq3KucXYcpiI1BHQS9kRPQkxyaDypFYdn0=";
 
   nativeBuildInputs = [ installShellFiles ];
 
-  postInstall = ''
+  postInstall = lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
     installShellCompletion --cmd devbox \
       --bash <($out/bin/devbox completion bash) \
       --fish <($out/bin/devbox completion fish) \
@@ -35,9 +39,12 @@ buildGoModule rec {
   '';
 
   meta = with lib; {
-    description = "Instant, easy, predictable shells and containers.";
+    description = "Instant, easy, predictable shells and containers";
     homepage = "https://www.jetpack.io/devbox";
     license = licenses.asl20;
-    maintainers = with maintainers; [ urandom lagoja ];
+    maintainers = with maintainers; [
+      urandom
+      lagoja
+    ];
   };
 }

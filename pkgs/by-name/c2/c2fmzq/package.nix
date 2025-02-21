@@ -1,27 +1,34 @@
-{ lib
-, buildGoModule
-, fetchFromGitHub
-, nixosTests
+{
+  lib,
+  buildGoModule,
+  fetchFromGitHub,
+  nixosTests,
 }:
 
 buildGoModule rec {
   pname = "c2FmZQ";
-  version = "0.4.17";
+  version = "0.4.28";
 
   src = fetchFromGitHub {
     owner = "c2FmZQ";
     repo = "c2FmZQ";
     rev = "v${version}";
-    hash = "sha256-xjgoE1HlCmSPZ6TQcemI7fNE9wbIrk/WSrz6vlVt66U=";
+    hash = "sha256-R9CYgP444S9LinGT2fUnmOvaBHHv2thy1I2TQSPbnOs=";
   };
 
-  ldflags = [ "-s" "-w" ];
+  ldflags = [
+    "-s"
+    "-w"
+  ];
 
-  sourceRoot = "source/c2FmZQ";
+  sourceRoot = "${src.name}/c2FmZQ";
 
-  vendorHash = "sha256-lnoEh6etfVLx+GYWNCvra40qOYtzTIH3SC28T6mXC2U=";
+  vendorHash = "sha256-yv/PNzWvEAiKyXw9XVAty67vRgXJmi4eq+i352yKKck=";
 
-  subPackages = [ "c2FmZQ-client" "c2FmZQ-server" ];
+  subPackages = [
+    "c2FmZQ-client"
+    "c2FmZQ-server"
+  ];
 
   passthru.tests = { inherit (nixosTests) c2fmzq; };
 

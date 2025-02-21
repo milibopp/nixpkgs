@@ -1,60 +1,64 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchPypi
-, isPyPy
+{
+  stdenv,
+  lib,
+  buildPythonPackage,
+  pythonOlder,
+  fetchFromGitHub,
+  fetchpatch,
+  isPyPy,
 
-# build-system
-, setuptools
+  # build-system
+  setuptools,
 
-# propagates
-, markupsafe
+  # propagates
+  markupsafe,
 
-# optional-dependencies
-, babel
-, lingua
+  # optional-dependencies
+  babel,
+  lingua,
 
-# tests
-, chameleon
-, mock
-, pytestCheckHook
+  # tests
+  chameleon,
+  mock,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "mako";
-  version = "1.3.0";
+  version = "1.3.8";
   pyproject = true;
 
   disabled = pythonOlder "3.7";
 
-  src = fetchPypi {
-    pname = "Mako";
-    inherit version;
-    hash = "sha256-46nTiP0A6HBD7b6HkvRYgKwBFOnErcafbpv7LFXjsRs=";
+  src = fetchFromGitHub {
+    owner = "sqlalchemy";
+    repo = "mako";
+    tag = "rel_${lib.replaceStrings [ "." ] [ "_" ] version}";
+    hash = "sha256-7KttExqHxv//q8ol7eOFIrgRHbQySQTvL7Rd9VooX0Y=";
   };
 
-  nativeBuildInputs = [
-    setuptools
+  patches = [
+    (fetchpatch {
+      name = "float-precision.patch";
+      url = "https://github.com/sqlalchemy/mako/commit/188d5431a5c93b937da03e70c4c2c8c42cd9a502.patch";
+      hash = "sha256-/ROS6WkSqYXJsX6o1AejUg/faS3lUAimrRJzS74Bwws=";
+    })
   ];
 
-  propagatedBuildInputs = [
-    markupsafe
-  ];
+  build-system = [ setuptools ];
 
-  passthru.optional-dependencies = {
-    babel = [
-      babel
-    ];
-    lingua = [
-      lingua
-    ];
+  dependencies = [ markupsafe ];
+
+  optional-dependencies = {
+    babel = [ babel ];
+    lingua = [ lingua ];
   };
 
   nativeCheckInputs = [
     chameleon
     mock
     pytestCheckHook
-  ] ++ lib.flatten (lib.attrValues passthru.optional-dependencies);
+  ] ++ lib.flatten (lib.attrValues optional-dependencies);
 
   disabledTests = lib.optionals isPyPy [
     # https://github.com/sqlalchemy/mako/issues/315
@@ -68,6 +72,7 @@ buildPythonPackage rec {
 
   meta = with lib; {
     description = "Super-fast templating language";
+    mainProgram = "mako-render";
     homepage = "https://www.makotemplates.org/";
     changelog = "https://docs.makotemplates.org/en/latest/changelog.html";
     license = licenses.mit;

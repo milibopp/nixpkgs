@@ -1,29 +1,28 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, poetry-core
-, argparse-dataclass
-, throttler
-, snakemake-interface-common
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  poetry-core,
+  argparse-dataclass,
+  throttler,
+  snakemake-interface-common,
 }:
 
 buildPythonPackage rec {
   pname = "snakemake-interface-executor-plugins";
-  version = "8.1.3";
-  format = "pyproject";
+  version = "9.3.3";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "snakemake";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-QBLdqhR6WrO/zT0Ux5xcUtr5HbrDy91qiWuSjAA5c3E=";
+    repo = "snakemake-interface-executor-plugins";
+    tag = "v${version}";
+    hash = "sha256-1QmpL+YhpH7CmMKI9C60GnpVBveq9IPM2mrlMOdjUs4=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  build-system = [ poetry-core ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     argparse-dataclass
     throttler
     snakemake-interface-common
@@ -31,10 +30,11 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "snakemake_interface_executor_plugins" ];
 
-  meta = with lib; {
+  meta = {
     description = "This package provides a stable interface for interactions between Snakemake and its executor plugins";
     homepage = "https://github.com/snakemake/snakemake-interface-executor-plugins";
-    license = licenses.mit;
-    maintainers = with maintainers; [ veprbl ];
+    changelog = "https://github.com/snakemake/snakemake-interface-executor-plugins/blob/${src.tag}/CHANGELOG.md";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ veprbl ];
   };
 }

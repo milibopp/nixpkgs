@@ -1,47 +1,63 @@
-{ lib
-, buildPythonPackage
-, cairocffi
-, cython
-, fetchPypi
-, igraph
-, leidenalg
-, pandas
-, poetry-core
-, pytestCheckHook
-, pythonOlder
-, scipy
-, setuptools
-, spacy
-, spacy-lookups-data
-, en_core_web_sm
-, toolz
-, tqdm
-, wasabi
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  cython,
+  poetry-core,
+  setuptools,
+
+  # dependencies
+  cairocffi,
+  igraph,
+  leidenalg,
+  pandas,
+  pyarrow,
+  scipy,
+  spacy,
+  spacy-lookups-data,
+  toolz,
+  tqdm,
+  wasabi,
+
+  # tests
+  en_core_web_sm,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "textnets";
-  version = "0.9.3";
-  format = "pyproject";
+  version = "0.9.5";
+  pyproject = true;
 
-  disabled = pythonOlder "3.8";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-fx2S43IqpSMsfJow26jB/D27dyUFQ1PlXP1rbUIZPPQ=";
+  src = fetchFromGitHub {
+    owner = "jboynyc";
+    repo = "textnets";
+    tag = "v${version}";
+    hash = "sha256-MdKPxIshSx6U2EFGDTUS4EhoByyuVf0HKqvm9cS2KNY=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     cython
     poetry-core
     setuptools
   ];
 
-  propagatedBuildInputs = [
+  pythonRelaxDeps = [
+    "igraph"
+    "leidenalg"
+    "pyarrow"
+    "toolz"
+  ];
+
+  dependencies = [
     cairocffi
     igraph
     leidenalg
     pandas
+    pyarrow
     scipy
     spacy
     spacy-lookups-data
@@ -51,25 +67,36 @@ buildPythonPackage rec {
   ];
 
   nativeCheckInputs = [
-    pytestCheckHook
     en_core_web_sm
+    pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "textnets"
-  ];
+  pythonImportsCheck = [ "textnets" ];
 
-  disabledTests = [
-    # Test fails: A warning is triggered because of a deprecation notice by pandas.
-    # TODO: Try to re-enable it when pandas is updated to 2.1.1
-    "test_corpus_czech"
-  ];
+  # Enables the package to find the cythonized .so files during testing. See #255262
+  preCheck = ''
+    rm -r textnets
+  '';
 
-  meta = with lib; {
+  disabledTests =
+    [
+      # Test fails: Throws a UserWarning asking the user to install `textnets[fca]`.
+      "test_context"
+    ]
+    ++ lib.optionals stdenv.hostPlatform.isDarwin [
+      # MemoryError: ("cairo returned CAIRO_STATUS_NO_MEMORY: b'out of memory'", 1)
+      "test_plot_backbone"
+      "test_plot_filtered"
+      "test_plot_layout"
+      "test_plot_projected"
+      "test_plot_scaled"
+    ];
+
+  meta = {
     description = "Text analysis with networks";
     homepage = "https://textnets.readthedocs.io";
     changelog = "https://github.com/jboynyc/textnets/blob/v${version}/HISTORY.rst";
-    license = licenses.gpl3Only;
-    maintainers = with maintainers; [ jboy ];
+    license = lib.licenses.gpl3Only;
+    maintainers = with lib.maintainers; [ jboy ];
   };
 }

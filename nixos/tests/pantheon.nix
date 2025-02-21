@@ -10,8 +10,18 @@ import ./make-test-python.nix ({ pkgs, lib, ...} :
   {
     imports = [ ./common/user-account.nix ];
 
+    # Workaround ".gala-wrapped invoked oom-killer"
+    virtualisation.memorySize = 2047;
+
     services.xserver.enable = true;
     services.xserver.desktopManager.pantheon.enable = true;
+
+    # We ship pantheon.appcenter by default when this is enabled.
+    services.flatpak.enable = true;
+
+    # We don't ship gnome-text-editor in Pantheon module, we add this line mainly
+    # to catch eval issues related to this option.
+    environment.pantheon.excludePackages = [ pkgs.gnome-text-editor ];
 
     environment.systemPackages = [ pkgs.xdotool ];
   };
@@ -46,22 +56,19 @@ import ./make-test-python.nix ({ pkgs, lib, ...} :
         machine.succeed("getfacl -p /dev/snd/timer | grep -q ${user.name}")
 
     with subtest("Check if Pantheon components actually start"):
-        for i in ["gala", "io.elementary.wingpanel", "plank", "gsd-media-keys", "io.elementary.desktop.agent-polkit"]:
+        for i in ["gala", "io.elementary.wingpanel", "io.elementary.dock", "gsd-media-keys", "io.elementary.desktop.agent-polkit"]:
             machine.wait_until_succeeds(f"pgrep -f {i}")
-        for i in ["gala", "io.elementary.wingpanel", "plank"]:
+        for i in ["gala", "io.elementary.wingpanel", "io.elementary.dock"]:
             machine.wait_for_window(i)
-        machine.wait_for_unit("bamfdaemon.service", "${user.name}")
-        machine.wait_for_unit("io.elementary.files.xdg-desktop-portal.service", "${user.name}")
+        machine.wait_until_succeeds("pgrep -xf ${pkgs.pantheon.elementary-files}/libexec/io.elementary.files.xdg-desktop-portal")
 
     with subtest("Check if various environment variables are set"):
-        cmd = "xargs --null --max-args=1 echo < /proc/$(pgrep -xf /run/current-system/sw/bin/gala)/environ"
+        cmd = "xargs --null --max-args=1 echo < /proc/$(pgrep -xf ${pkgs.pantheon.gala}/bin/gala)/environ"
         machine.succeed(f"{cmd} | grep 'XDG_CURRENT_DESKTOP' | grep 'Pantheon'")
         # Hopefully from the sessionPath option.
         machine.succeed(f"{cmd} | grep 'XDG_DATA_DIRS' | grep 'gsettings-schemas/pantheon-agent-geoclue2'")
         # Hopefully from login shell.
         machine.succeed(f"{cmd} | grep '__NIXOS_SET_ENVIRONMENT_DONE' | grep '1'")
-        # See elementary-session-settings packaging.
-        machine.succeed(f"{cmd} | grep 'XDG_CONFIG_DIRS' | grep 'elementary-default-settings'")
 
     with subtest("Open elementary videos"):
         machine.execute("su - ${user.name} -c 'DISPLAY=:0 io.elementary.videos >&2 &'")
@@ -76,10 +83,10 @@ import ./make-test-python.nix ({ pkgs, lib, ...} :
         machine.wait_for_window("io.elementary.calendar")
 
     with subtest("Open system settings"):
-        machine.execute("su - ${user.name} -c 'DISPLAY=:0 io.elementary.switchboard >&2 &'")
+        machine.execute("su - ${user.name} -c 'DISPLAY=:0 io.elementary.settings >&2 &'")
         # Wait for all plugins to be loaded before we check if the window is still there.
         machine.sleep(5)
-        machine.wait_for_window("io.elementary.switchboard")
+        machine.wait_for_window("io.elementary.settings")
 
     with subtest("Open elementary terminal"):
         machine.execute("su - ${user.name} -c 'DISPLAY=:0 io.elementary.terminal >&2 &'")
@@ -89,7 +96,7 @@ import ./make-test-python.nix ({ pkgs, lib, ...} :
         cmd = "dbus-send --session --dest=org.pantheon.gala --print-reply /org/pantheon/gala org.pantheon.gala.PerformAction int32:1"
         env = "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/${toString user.uid}/bus DISPLAY=:0"
         machine.succeed(f"su - ${user.name} -c '{env} {cmd}'")
-        machine.sleep(3)
+        machine.sleep(5)
         machine.screenshot("multitasking")
         machine.succeed(f"su - ${user.name} -c '{env} {cmd}'")
 

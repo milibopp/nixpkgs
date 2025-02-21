@@ -1,21 +1,15 @@
-{ stdenv
-, lib
-, fetchurl
-, unzip
-, qtbase
-, qtmacextras ? null
-, qmake
-, fixDarwinDylibNames
-, darwin
+{
+  stdenv,
+  lib,
+  fetchurl,
+  unzip,
+  qtbase,
+  qtmacextras ? null,
+  qmake,
+  fixDarwinDylibNames,
 }:
 
-let
-  stdenv' = if stdenv.isDarwin then
-    darwin.apple_sdk_11_0.stdenv
-  else
-    stdenv
-  ;
-in stdenv'.mkDerivation rec {
+stdenv.mkDerivation rec {
   pname = "qscintilla-qt5";
   version = "2.13.2";
 
@@ -28,16 +22,22 @@ in stdenv'.mkDerivation rec {
 
   buildInputs = [ qtbase ];
 
-  propagatedBuildInputs = lib.optionals stdenv.isDarwin [ qtmacextras ];
+  propagatedBuildInputs = lib.optionals stdenv.hostPlatform.isDarwin [ qtmacextras ];
 
-  nativeBuildInputs = [ unzip qmake ]
-    ++ lib.optionals stdenv.isDarwin [ fixDarwinDylibNames ];
+  nativeBuildInputs = [
+    unzip
+    qmake
+  ] ++ lib.optionals stdenv.hostPlatform.isDarwin [ fixDarwinDylibNames ];
 
   # Make sure that libqscintilla2.so is available in $out/lib since it is expected
   # by some packages such as sqlitebrowser
-  postFixup = ''
-    ln -s $out/lib/libqscintilla2_qt5.so $out/lib/libqscintilla2.so
-  '';
+  postFixup =
+    let
+      libExt = stdenv.hostPlatform.extensions.sharedLibrary;
+    in
+    ''
+      ln -s $out/lib/libqscintilla2_qt5${libExt} $out/lib/libqscintilla2${libExt}
+    '';
 
   dontWrapQtApps = true;
 
@@ -51,7 +51,7 @@ in stdenv'.mkDerivation rec {
   '';
 
   meta = with lib; {
-    description = "A Qt port of the Scintilla text editing library";
+    description = "Qt port of the Scintilla text editing library";
     longDescription = ''
       QScintilla is a port to Qt of Neil Hodgson's Scintilla C++ editor
       control.
@@ -71,6 +71,6 @@ in stdenv'.mkDerivation rec {
     maintainers = with maintainers; [ peterhoeg ];
     platforms = platforms.unix;
     # ld: library not found for -lcups
-    broken = stdenv.isDarwin && lib.versionAtLeast qtbase.version "6";
+    broken = stdenv.hostPlatform.isDarwin && lib.versionAtLeast qtbase.version "6";
   };
 }

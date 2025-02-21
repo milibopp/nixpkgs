@@ -14,7 +14,7 @@ buildGoModule rec {
   vendorHash = null;
   subPackages = ".";
   # Pushup doesn't need CGO so disable it.
-  CGO_ENABLED=0;
+  env.CGO_ENABLED = 0;
   ldflags = [ "-s" "-w" ];
   nativeBuildInputs = [ makeWrapper ];
   # The Go compiler is a runtime dependency of Pushup.
@@ -26,7 +26,7 @@ buildGoModule rec {
   '';
 
   meta = with lib; {
-    description = "A web framework for Go";
+    description = "Web framework for Go";
     homepage = "https://pushup.adhoc.dev/";
     license = licenses.mit;
     changelog = "https://github.com/adhocteam/pushup/blob/${src.rev}/CHANGELOG.md";

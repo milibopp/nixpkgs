@@ -80,6 +80,8 @@ Do _not_ use `dart run <package_name>`, as this will attempt to download depende
 
 ### Usage with nix-shell {#ssec-dart-applications-nix-shell}
 
+#### Using dependencies from the Nix store {#ssec-dart-applications-nix-shell-deps}
+
 As `buildDartApplication` provides dependencies instead of `pub get`, Dart needs to be explicitly told where to find them.
 
 Run the following commands in the source directory to configure Dart appropriately.
@@ -96,18 +98,23 @@ The function `buildFlutterApplication` builds Flutter applications.
 
 See the [Dart documentation](#ssec-dart-applications) for more details on required files and arguments.
 
-```nix
-{  flutter, fetchFromGitHub }:
+`flutter` in Nixpkgs always points to `flutterPackages.stable`, which is the latest packaged version. To avoid unforeseen breakage during upgrade, packages in Nixpkgs should use a specific flutter version, such as `flutter319` and `flutter322`, instead of using `flutter` directly.
 
-flutter.buildFlutterApplication {
+```nix
+{  flutter322, fetchFromGitHub }:
+
+flutter322.buildFlutterApplication {
   pname = "firmware-updater";
-  version = "unstable-2023-04-30";
+  version = "0-unstable-2023-04-30";
+
+  # To build for the Web, use the targetFlutterPlatform argument.
+  # targetFlutterPlatform = "web";
 
   src = fetchFromGitHub {
     owner = "canonical";
     repo = "firmware-updater";
     rev = "6e7dbdb64e344633ea62874b54ff3990bd3b8440";
-    sha256 = "sha256-s5mwtr5MSPqLMN+k851+pFIFFPa0N1hqz97ys050tFA=";
+    hash = "sha256-s5mwtr5MSPqLMN+k851+pFIFFPa0N1hqz97ys050tFA=";
     fetchSubmodules = true;
   };
 
@@ -117,4 +124,15 @@ flutter.buildFlutterApplication {
 
 ### Usage with nix-shell {#ssec-dart-flutter-nix-shell}
 
-See the [Dart documentation](#ssec-dart-applications-nix-shell) for nix-shell instructions.
+Flutter-specific `nix-shell` usage notes are included here. See the [Dart documentation](#ssec-dart-applications-nix-shell) for general `nix-shell` instructions.
+
+#### Entering the shell {#ssec-dart-flutter-nix-shell-enter}
+
+By default, dependencies for only the `targetFlutterPlatform` are available in the
+build environment. This is useful for keeping closures small, but be problematic
+during development. It's common, for example, to build Web apps for Linux during
+development to take advantage of native features such as stateful hot reload.
+
+To enter a shell with all the usual target platforms available, use the `multiShell` attribute.
+
+e.g. `nix-shell '<nixpkgs>' -A fluffychat-web.multiShell`.

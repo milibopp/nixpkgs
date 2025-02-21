@@ -1,16 +1,22 @@
-{ lib, stdenv, fetchurl, dpkg, nixosTests }:
+{
+  lib,
+  stdenv,
+  fetchurl,
+  dpkg,
+  nixosTests,
+}:
 
 stdenv.mkDerivation rec {
   pname = "jitsi-meet-prosody";
-  version = "1.0.7712";
+  version = "1.0.8384";
   src = fetchurl {
     url = "https://download.jitsi.org/stable/${pname}_${version}-1_all.deb";
-    sha256 = "MONg1CxLrfB+cmmXm4r3HqwF1on+vDZ0IODKSr7PsWo=";
+    sha256 = "MzzfSBh0NVO2nF3X4qz0dIoepbEUyGf800vKNqS34ug=";
   };
 
-  dontBuild = true;
+  nativeBuildInputs = [ dpkg ];
 
-  unpackCmd = "${dpkg}/bin/dpkg-deb -x $src debcontents";
+  dontBuild = true;
 
   installPhase = ''
     runHook preInstall
@@ -28,7 +34,7 @@ stdenv.mkDerivation rec {
   meta = with lib; {
     description = "Prosody configuration for Jitsi Meet";
     longDescription = ''
-        This package contains configuration for Prosody to be used with Jitsi Meet.
+      This package contains configuration for Prosody to be used with Jitsi Meet.
     '';
     homepage = "https://github.com/jitsi/jitsi-meet/";
     license = licenses.asl20;

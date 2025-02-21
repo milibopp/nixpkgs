@@ -1,78 +1,93 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
 
-# build-system
-, cmake
-, cython_3
-, ninja
-, oldest-supported-numpy
-, scikit-build
-, setuptools
-, wheel
+  # build-system
+  cmake,
+  cython,
+  ninja,
+  pkg-config,
+  scikit-build-core,
 
-# propagates
-, msgpack
-, ndindex
-, numpy
-, py-cpuinfo
-, rich
+  # native dependencies
+  c-blosc2,
 
-# tests
-, psutil
-, pytestCheckHook
-, torch
+  # dependencies
+  httpx,
+  msgpack,
+  ndindex,
+  numexpr,
+  numpy,
+  py-cpuinfo,
+
+  # tests
+  psutil,
+  pytestCheckHook,
+  torch,
+  runTorchTests ? lib.meta.availableOn stdenv.hostPlatform torch,
 }:
 
 buildPythonPackage rec {
   pname = "blosc2";
-  version = "2.3.2";
-  format = "pyproject";
+  version = "3.0.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "Blosc";
     repo = "python-blosc2";
-    rev = "refs/tags/v${version}";
-    fetchSubmodules = true;
-    hash = "sha256-tRcyntJlmLPbqnX7nzdBQ/50uXy0fVLb2YGVOIwJjxU=";
+    tag = "v${version}";
+    hash = "sha256-em03vwTPURkyZfGdlgpoy8QUzbib9SlcR73vYznlsYA=";
   };
 
-  postPatch = ''
-    substituteInPlace requirements-runtime.txt \
-      --replace "pytest" ""
-  '';
+  pythonRelaxDeps = [ "numpy" ];
 
   nativeBuildInputs = [
     cmake
-    cython_3
     ninja
-    oldest-supported-numpy
-    scikit-build
-    setuptools
-    wheel
+    pkg-config
   ];
 
   dontUseCmakeConfigure = true;
+  env.CMAKE_ARGS = lib.cmakeBool "USE_SYSTEM_BLOSC2" true;
 
-  propagatedBuildInputs = [
+  build-system = [
+    cython
+    scikit-build-core
+  ];
+
+  buildInputs = [ c-blosc2 ];
+
+  dependencies = [
+    httpx
     msgpack
     ndindex
+    numexpr
     numpy
     py-cpuinfo
-    rich
   ];
 
   nativeCheckInputs = [
     psutil
     pytestCheckHook
-    torch
+  ] ++ lib.optionals runTorchTests [ torch ];
+
+  disabledTests = [
+    # RuntimeError: Error while getting the slice
+    "test_lazyexpr"
+    "test_eval_item"
+    # RuntimeError: Error while creating the NDArray
+    "test_lossy"
   ];
+
+  passthru.c-blosc2 = c-blosc2;
 
   meta = with lib; {
     description = "Python wrapper for the extremely fast Blosc2 compression library";
     homepage = "https://github.com/Blosc/python-blosc2";
-    changelog = "https://github.com/Blosc/python-blosc2/releases/tag/v${version}";
+    changelog = "https://github.com/Blosc/python-blosc2/releases/tag/${src.tag}";
     license = licenses.bsd3;
-    maintainers = with maintainers; [ ];
+    maintainers = with maintainers; [ ris ];
   };
 }

@@ -1,42 +1,39 @@
-{ stdenv
-, lib
-, buildPythonPackage
-, fetchFromGitHub
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
 
-# build-system
-, setuptools
+  # build-system
+  setuptools,
 
-# dependencies
-, apricot-select
-, networkx
-, numpy
-, scikit-learn
-, scipy
-, torch
+  # dependencies
+  apricot-select,
+  networkx,
+  numpy,
+  scikit-learn,
+  scipy,
+  torch,
 
-# tests
-, pytestCheckHook
+  # tests
+  pytestCheckHook,
 }:
-
 
 buildPythonPackage rec {
   pname = "pomegranate";
-  version = "1.0.0";
-  format = "pyproject";
+  version = "1.1.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     repo = pname;
     owner = "jmschrei";
-    # no tags for recent versions: https://github.com/jmschrei/pomegranate/issues/974
-    rev = "refs/tags/v${version}";
-    sha256 = "sha256-EnxKlRRfsOIDLAhYOq7bUSbI/NvPoSyYCZ9D5VCXFGQ=";
+    tag = "v${version}";
+    hash = "sha256-p2Gn0FXnsAHvRUeAqx4M1KH0+XvDl3fmUZZ7MiMvPSs=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     apricot-select
     networkx
     numpy
@@ -45,15 +42,29 @@ buildPythonPackage rec {
     torch
   ];
 
+  pythonImportsCheck = [ "pomegranate" ];
+
   nativeCheckInputs = [
     pytestCheckHook
   ];
 
-  meta = with lib; {
-    broken = stdenv.isDarwin;
+  pytestFlagsArray = lib.optionals (stdenv.hostPlatform.isDarwin && stdenv.hostPlatform.isx86_64) [
+    # AssertionError: Arrays are not almost equal to 6 decimals
+    "--deselect=tests/distributions/test_normal_full.py::test_fit"
+    "--deselect=tests/distributions/test_normal_full.py::test_from_summaries"
+    "--deselect=tests/distributions/test_normal_full.py::test_serialization"
+  ];
+
+  disabledTests = [
+    # AssertionError: Arrays are not almost equal to 6 decimals
+    "test_sample"
+  ];
+
+  meta = {
     description = "Probabilistic and graphical models for Python, implemented in cython for speed";
     homepage = "https://github.com/jmschrei/pomegranate";
-    license = licenses.mit;
-    maintainers = with maintainers; [ rybern ];
+    changelog = "https://github.com/jmschrei/pomegranate/releases/tag/v${version}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ rybern ];
   };
 }

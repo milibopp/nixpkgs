@@ -1,21 +1,29 @@
-{ lib, php82, fetchFromGitHub }:
+{
+  lib,
+  php82,
+  fetchFromGitHub,
+  versionCheckHook,
+}:
 
-php82.buildComposerProject (finalAttrs: {
+php82.buildComposerProject2 (finalAttrs: {
   pname = "box";
-  version = "4.6.0";
+  version = "4.6.2";
 
   src = fetchFromGitHub {
     owner = "box-project";
     repo = "box";
-    rev = finalAttrs.version;
-    hash = "sha256-s3FnpfKWmsLLXwa/xI80NZ1030fB9LcrMVzNWGeFkn4=";
+    tag = finalAttrs.version;
+    hash = "sha256-gYIAP9pTjahNkpNNXx0c8sQm+9Kaq6/IAo/xI5bNy7Y=";
   };
 
-  vendorHash = "sha256-t1DvlcgTSq4n8xVUMcEIfs5ZAq9XIqL3qUqabheVVrs=";
+  vendorHash = "sha256-TAubvl+rsdQdqKz+lRg1oX/ENuRyHoJQVmL1ELz24fg=";
+
+  nativeInstallCheckInputs = [ versionCheckHook ];
+  doInstallCheck = true;
 
   meta = {
     changelog = "https://github.com/box-project/box/releases/tag/${finalAttrs.version}";
-    description = "An application for building and managing Phars";
+    description = "Application for building and managing Phars";
     homepage = "https://github.com/box-project/box";
     license = lib.licenses.mit;
     mainProgram = "box";

@@ -1,70 +1,60 @@
 {
   lib,
-  stdenv,
-  fetchFromGitHub,
-  rust,
-  rustPlatform,
-  cmake,
-  makeBinaryWrapper,
   cosmic-icons,
-  just,
-  pkg-config,
-  libxkbcommon,
-  glib,
-  gtk3,
-  libinput,
+  fetchFromGitHub,
   fontconfig,
   freetype,
+  just,
+  libglvnd,
+  libinput,
+  libxkbcommon,
+  makeBinaryWrapper,
+  pkg-config,
+  rustPlatform,
+  stdenv,
+  vulkan-loader,
   wayland,
-  xorg
+  xorg,
 }:
 
 rustPlatform.buildRustPackage rec {
   pname = "cosmic-term";
-  version = "unstable-2023-12-26";
+  version = "1.0.0-alpha.5.1";
 
   src = fetchFromGitHub {
     owner = "pop-os";
-    repo = pname;
-    rev = "bf3f507fdd73a06ab1f9b199a98dca6988aafec2";
-    hash = "sha256-c5RNrC0AZvz+O3nj7VvMQuA/U0sgxZCVHn+cc+4pIN8=";
+    repo = "cosmic-term";
+    rev = "epoch-${version}";
+    hash = "sha256-uPKbh1PA8P51Gcet459ZBRKRe0JmxSWvIFn3AQIG6KY=";
   };
 
-  cargoLock = {
-    lockFile = ./Cargo.lock;
-    outputHashes = {
-      "accesskit-0.11.0" = "sha256-xVhe6adUb8VmwIKKjHxwCwOo5Y1p3Or3ylcJJdLDrrE=";
-      "atomicwrites-0.4.2" = "sha256-QZSuGPrJXh+svMeFWqAXoqZQxLq/WfIiamqvjJNVhxA=";
-      "cosmic-config-0.1.0" = "sha256-V371fmSmLIwUxtx6w+C55cBJ8oyYgN86r3FZ8rGBLEs=";
-      "cosmic-text-0.10.0" = "sha256-/4Hg+7R0LRF4paXIREkMOTtbQ1xgONym5nKb/TuyeD4=";
-      "glyphon-0.3.0" = "sha256-T7hvqtR3zi9wNemFrPPGakq2vEraLpnPkN7umtumwVg=";
-      "sctk-adwaita-0.5.4" = "sha256-yK0F2w/0nxyKrSiHZbx7+aPNY2vlFs7s8nu/COp2KqQ=";
-      "softbuffer-0.3.3" = "sha256-eKYFVr6C1+X6ulidHIu9SP591rJxStxwL9uMiqnXx4k=";
-      "smithay-client-toolkit-0.16.1" = "sha256-z7EZThbh7YmKzAACv181zaEZmWxTrMkFRzP0nfsHK6c=";
-      "taffy-0.3.11" = "sha256-SCx9GEIJjWdoNVyq+RZAGn0N71qraKZxf9ZWhvyzLaI=";
-      "winit-0.28.6" = "sha256-FhW6d2XnXCGJUMoT9EMQew9/OPXiehy/JraeCiVd76M=";
-    };
-  };
+  useFetchCargoVendor = true;
+  cargoHash = "sha256-clGzp7pH7YHePFzlq2eLYKKx9IiFQKB5FmqPeuSuIVc=";
+
+  # COSMIC applications now uses vergen for the About page
+  # Update the COMMIT_DATE to match when the commit was made
+  env.VERGEN_GIT_COMMIT_DATE = "2025-01-14";
+  env.VERGEN_GIT_SHA = src.rev;
 
   postPatch = ''
-    substituteInPlace justfile --replace '#!/usr/bin/env' "#!$(command -v env)"
+    substituteInPlace justfile --replace-fail '#!/usr/bin/env' "#!$(command -v env)"
   '';
 
   nativeBuildInputs = [
-    cmake
     just
     pkg-config
     makeBinaryWrapper
   ];
+
   buildInputs = [
-    libxkbcommon
-    xorg.libX11
-    libinput
     fontconfig
     freetype
+    libglvnd
+    libinput
+    libxkbcommon
+    vulkan-loader
     wayland
-    glib
-    gtk3
+    xorg.libX11
   ];
 
   dontUseJustBuild = true;
@@ -75,23 +65,33 @@ rustPlatform.buildRustPackage rec {
     (placeholder "out")
     "--set"
     "bin-src"
-    "target/${
-      rust.lib.toRustTargetSpecShort stdenv.hostPlatform
-    }/release/cosmic-term"
+    "target/${stdenv.hostPlatform.rust.cargoShortTarget}/release/cosmic-term"
   ];
 
-  # LD_LIBRARY_PATH can be removed once tiny-xlib is bumped above 0.2.2
+  # Force linking to libEGL, which is always dlopen()ed, and to
+  # libwayland-client, which is always dlopen()ed except by the
+  # obscure winit backend.
+  RUSTFLAGS = map (a: "-C link-arg=${a}") [
+    "-Wl,--push-state,--no-as-needed"
+    "-lEGL"
+    "-lwayland-client"
+    "-Wl,--pop-state"
+  ];
+
   postInstall = ''
-    wrapProgram "$out/bin/${pname}" \
-      --suffix XDG_DATA_DIRS : "${cosmic-icons}/share" \
-      --prefix LD_LIBRARY_PATH : ${lib.makeLibraryPath [ xorg.libX11 wayland libxkbcommon ]}
+    wrapProgram "$out/bin/cosmic-term" \
+      --suffix XDG_DATA_DIRS : "${cosmic-icons}/share"
   '';
 
   meta = with lib; {
     homepage = "https://github.com/pop-os/cosmic-term";
     description = "Terminal for the COSMIC Desktop Environment";
     license = licenses.gpl3Only;
-    maintainers = with maintainers; [ ahoneybun ];
+    maintainers = with maintainers; [
+      ahoneybun
+      nyabinary
+    ];
     platforms = platforms.linux;
+    mainProgram = "cosmic-term";
   };
 }

@@ -1,78 +1,101 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, pytestCheckHook
-, aiohttp
-, aiohttp-socks
-, aioredis
-, aiofiles
-, aresponses
-, babel
-, certifi
-, magic-filter
-, pytest-asyncio
-, pytest-lazy-fixture
-, redis
-, hatchling
-, pydantic
-, pytz
-, gitUpdater
+{
+  lib,
+  aiodns,
+  aiofiles,
+  aiohttp-socks,
+  aiohttp,
+  aresponses,
+  babel,
+  buildPythonPackage,
+  certifi,
+  fetchFromGitHub,
+  gitUpdater,
+  hatchling,
+  magic-filter,
+  motor,
+  pycryptodomex,
+  pydantic,
+  pymongo,
+  pytest-aiohttp,
+  pytest-asyncio,
+  pytest-lazy-fixture,
+  pytestCheckHook,
+  pythonOlder,
+  pytz,
+  redis,
+  uvloop,
 }:
 
 buildPythonPackage rec {
   pname = "aiogram";
-  version = "3.3.0";
+  version = "3.18.0";
   pyproject = true;
 
-  disabled = pythonOlder "3.7";
+  disabled = pythonOlder "3.9";
 
   src = fetchFromGitHub {
     owner = "aiogram";
     repo = "aiogram";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-TD4pDmM899zBOxllM0iju2u6IhmXxLYWBpjfWhewVFc=";
+    tag = "v${version}";
+    hash = "sha256-3JyMkLixemKZN9XSpN/4SdpdYfR3WqGUKQ9Bfy6bB+Q=";
   };
 
-  nativeBuildInputs = [
-    hatchling
-  ];
+  build-system = [ hatchling ];
 
-  propagatedBuildInputs = [
+  pythonRelaxDeps = [ "aiohttp" ];
+
+  dependencies = [
     aiofiles
     aiohttp
-    babel
     certifi
     magic-filter
     pydantic
   ];
 
+  optional-dependencies = {
+    fast = [
+      aiodns
+      uvloop
+    ];
+    mongo = [
+      motor
+      pymongo
+    ];
+    redis = [ redis ];
+    proxy = [ aiohttp-socks ];
+    i18n = [ babel ];
+  };
+
   nativeCheckInputs = [
-    aiohttp-socks
-    aioredis
     aresponses
+    pycryptodomex
+    pytest-aiohttp
     pytest-asyncio
     pytest-lazy-fixture
     pytestCheckHook
     pytz
-    redis
-  ];
+  ] ++ lib.flatten (builtins.attrValues optional-dependencies);
 
-  # import failures
-  disabledTests = [
-    "test_aiohtt_server"
-    "test_deep_linking"
+  pytestFlagsArray = [
+    "-W"
+    "ignore::pluggy.PluggyTeardownRaisedWarning"
+    "-W"
+    "ignore::pytest.PytestDeprecationWarning"
+    "-W"
+    "ignore::DeprecationWarning"
   ];
 
   pythonImportsCheck = [ "aiogram" ];
 
-  passthru.updateScript = gitUpdater { };
+  passthru.updateScript = gitUpdater { rev-prefix = "v"; };
 
-  meta = with lib; {
+  __darwinAllowLocalNetworking = true;
+
+  meta = {
     description = "Modern and fully asynchronous framework for Telegram Bot API";
     homepage = "https://github.com/aiogram/aiogram";
-    changelog = "https://github.com/aiogram/aiogram/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ sikmir ];
+    changelog = "https://github.com/aiogram/aiogram/releases/tag/${src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ sikmir ];
   };
 }

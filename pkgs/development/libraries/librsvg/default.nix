@@ -1,63 +1,86 @@
-{ lib
-, stdenv
-, fetchurl
-, pkg-config
-, glib
-, gdk-pixbuf
-, installShellFiles
-, pango
-, cairo
-, libxml2
-, bzip2
-, libintl
-, ApplicationServices
-, Foundation
-, libobjc
-, rustPlatform
-, rustc
-, cargo-auditable-cargo-wrapper
-, gi-docgen
-, python3Packages
-, gnome
-, vala
-, writeScript
-, withIntrospection ? lib.meta.availableOn stdenv.hostPlatform gobject-introspection && stdenv.hostPlatform.emulatorAvailable buildPackages
-, buildPackages
-, gobject-introspection
-, _experimental-update-script-combinators
-, common-updater-scripts
-, jq
-, nix
+{
+  lib,
+  stdenv,
+  fetchurl,
+  fetchpatch,
+  pkg-config,
+  meson,
+  ninja,
+  glib,
+  gdk-pixbuf,
+  installShellFiles,
+  pango,
+  freetype,
+  harfbuzz,
+  cairo,
+  libxml2,
+  bzip2,
+  dav1d,
+  Foundation,
+  rustPlatform,
+  rustc,
+  cargo-c,
+  cargo-auditable-cargo-wrapper,
+  gi-docgen,
+  python3Packages,
+  gnome,
+  vala,
+  writeShellScript,
+  shared-mime-info,
+  # Requires building a cdylib.
+  withPixbufLoader ? !stdenv.hostPlatform.isStatic,
+  withIntrospection ?
+    lib.meta.availableOn stdenv.hostPlatform gobject-introspection
+    && stdenv.hostPlatform.emulatorAvailable buildPackages,
+  buildPackages,
+  gobject-introspection,
+  mesonEmulatorHook,
+  _experimental-update-script-combinators,
+  common-updater-scripts,
+  jq,
+  nix,
 
-# for passthru.tests
-, enlightenment
-, ffmpeg
-, gegl
-, gimp
-, imagemagick
-, imlib2
-, vips
-, xfce
+  # for passthru.tests
+  enlightenment,
+  ffmpeg,
+  gegl,
+  gimp,
+  imagemagick,
+  imlib2,
+  vips,
+  xfce,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "librsvg";
-  version = "2.57.1";
+  version = "2.59.2";
 
-  outputs = [ "out" "dev" ] ++ lib.optionals withIntrospection [
-    "devdoc"
-  ];
+  outputs =
+    [
+      "out"
+      "dev"
+    ]
+    ++ lib.optionals withIntrospection [
+      "devdoc"
+    ];
 
   src = fetchurl {
     url = "mirror://gnome/sources/librsvg/${lib.versions.majorMinor finalAttrs.version}/librsvg-${finalAttrs.version}.tar.xz";
-    hash = "sha256-B0Zxo+1vvNZ8ripA5TkQf08JfKikqxqJTAXiUk/zQO8=";
+    hash = "sha256-7NKT+wzDOMFwFxu8e8++pnJdBByV8xOF3JNUCZM+RZc=";
   };
 
-  cargoDeps = rustPlatform.fetchCargoTarball {
+  patches = [
+    (fetchpatch {
+      name = "cross-introspection.patch";
+      url = "https://gitlab.gnome.org/GNOME/librsvg/-/commit/84f24b1f5767f807f8d0442bbf3f149a0defcf78.patch";
+      hash = "sha256-FRyAYCCP3eu7YDUS6g7sKCdbq2nU8yQdbdVaQwLrlhE=";
+    })
+  ];
+
+  cargoDeps = rustPlatform.fetchCargoVendor {
     inherit (finalAttrs) src;
     name = "librsvg-deps-${finalAttrs.version}";
-    hash = "sha256-zICI7sps5KYe8/yWXbCJv529KxGLjoyDOmpCgVAIsTs=";
-    # TODO: move this to fetchCargoTarball
+    hash = "sha256-M8iNNWpYgLIm0X3sTjAaRIFYLIHnMyrkcsayFrLg25Y=";
     dontConfigure = true;
   };
 
@@ -67,31 +90,42 @@ stdenv.mkDerivation (finalAttrs: {
     pkg-config
   ];
 
-  nativeBuildInputs = [
-    gdk-pixbuf
-    installShellFiles
-    pkg-config
-    rustc
-    cargo-auditable-cargo-wrapper
-    python3Packages.docutils
-    vala
-    rustPlatform.cargoSetupHook
-  ] ++ lib.optionals withIntrospection [
-    gobject-introspection
-    gi-docgen
-  ];
+  nativeBuildInputs =
+    [
+      gdk-pixbuf
+      installShellFiles
+      pkg-config
+      meson
+      ninja
+      rustc
+      cargo-c
+      cargo-auditable-cargo-wrapper
+      python3Packages.docutils
+      rustPlatform.cargoSetupHook
+    ]
+    ++ lib.optionals withIntrospection [
+      gobject-introspection
+      gi-docgen
+      vala # vala bindings require GObject introspection
+    ]
+    ++ lib.optionals (withIntrospection && !stdenv.buildPlatform.canExecute stdenv.hostPlatform) [
+      mesonEmulatorHook
+    ];
 
-  buildInputs = [
-    libxml2
-    bzip2
-    pango
-    libintl
-    vala # for share/vala/Makefile.vapigen
-  ] ++ lib.optionals stdenv.isDarwin [
-    ApplicationServices
-    Foundation
-    libobjc
-  ];
+  buildInputs =
+    [
+      libxml2
+      bzip2
+      dav1d
+      pango
+      freetype
+    ]
+    ++ lib.optionals withIntrospection [
+      vala # for share/vala/Makefile.vapigen
+    ]
+    ++ lib.optionals stdenv.hostPlatform.isDarwin [
+      Foundation
+    ];
 
   propagatedBuildInputs = [
     glib
@@ -99,63 +133,59 @@ stdenv.mkDerivation (finalAttrs: {
     cairo
   ];
 
-  configureFlags = [
-    (lib.enableFeature withIntrospection "introspection")
-    (lib.enableFeature withIntrospection "vala")
+  mesonFlags = [
+    "-Dtriplet=${stdenv.hostPlatform.rust.rustcTarget}"
+    (lib.mesonEnable "introspection" withIntrospection)
+    (lib.mesonEnable "pixbuf-loader" withPixbufLoader)
+    (lib.mesonEnable "vala" withIntrospection)
+    (lib.mesonBool "tests" finalAttrs.finalPackage.doCheck)
+  ];
 
-    "--enable-always-build-tests"
-  ] ++ lib.optional stdenv.isDarwin "--disable-Bsymbolic"
-    ++ lib.optional (stdenv.buildPlatform != stdenv.hostPlatform) "RUST_TARGET=${stdenv.hostPlatform.rust.rustcTarget}";
+  # Probably broken MIME type detection on Darwin.
+  # Tests fail with imprecise rendering on i686.
+  doCheck = !stdenv.isDarwin && !stdenv.hostPlatform.isi686;
 
-  doCheck = false; # all tests fail on libtool-generated rsvg-convert not being able to find coreutils
-
-  GDK_PIXBUF_QUERYLOADERS = writeScript "gdk-pixbuf-loader-loaders-wrapped" ''
-    ${lib.optionalString (stdenv.hostPlatform.emulatorAvailable buildPackages) (stdenv.hostPlatform.emulator buildPackages)} ${lib.getDev gdk-pixbuf}/bin/gdk-pixbuf-query-loaders
-  '';
-
-  # librsvg only links Foundation, but it also requiers libobjc. The Framework.tbd in the 11.0 SDK
-  # reexports libobjc, but the one in the 10.12 SDK does not, so link it manually.
-  env = lib.optionalAttrs (stdenv.isDarwin && stdenv.isx86_64) {
-    NIX_LDFLAGS = "-lobjc";
+  env = {
+    PKG_CONFIG_GDK_PIXBUF_2_0_GDK_PIXBUF_QUERY_LOADERS = writeShellScript "gdk-pixbuf-loader-loaders-wrapped" ''
+      ${lib.optionalString (stdenv.hostPlatform.emulatorAvailable buildPackages) (stdenv.hostPlatform.emulator buildPackages)} ${lib.getDev gdk-pixbuf}/bin/gdk-pixbuf-query-loaders
+    '';
   };
 
-  preConfigure = ''
-    PKG_CONFIG_VAPIGEN_VAPIGEN="$(type -p vapigen)"
-    export PKG_CONFIG_VAPIGEN_VAPIGEN
-  '';
-
-  # It wants to add loaders and update the loaders.cache in gdk-pixbuf
-  # Patching the Makefiles to it creates rsvg specific loaders and the
-  # relevant loader.cache here.
-  # The loaders.cache can be used by setting GDK_PIXBUF_MODULE_FILE to
-  # point to this file in a wrapper.
-  postConfigure = ''
-    GDK_PIXBUF=$out/lib/gdk-pixbuf-2.0/2.10.0
-    mkdir -p $GDK_PIXBUF/loaders
-    sed -i gdk-pixbuf-loader/Makefile \
-      -e "s#gdk_pixbuf_moduledir = .*#gdk_pixbuf_moduledir = $GDK_PIXBUF/loaders#" \
-      -e "s#gdk_pixbuf_cache_file = .*#gdk_pixbuf_cache_file = $GDK_PIXBUF/loaders.cache#" \
-      -e "s#\$(GDK_PIXBUF_QUERYLOADERS)#GDK_PIXBUF_MODULEDIR=$GDK_PIXBUF/loaders \$(GDK_PIXBUF_QUERYLOADERS)#"
+  postPatch = ''
+    patchShebangs \
+      meson/cargo_wrapper.py \
+      meson/makedef.py \
 
     # Fix thumbnailer path
-    sed -e "s#@bindir@\(/gdk-pixbuf-thumbnailer\)#${gdk-pixbuf}/bin\1#g" \
-        -i gdk-pixbuf-loader/librsvg.thumbnailer.in
+    substituteInPlace gdk-pixbuf-loader/librsvg.thumbnailer.in \
+      --replace-fail '@bindir@/gdk-pixbuf-thumbnailer' '${gdk-pixbuf}/bin/gdk-pixbuf-thumbnailer'
 
-    # 'error: linker `cc` not found' when cross-compiling
-    export RUSTFLAGS="-Clinker=$CC"
-  '' + lib.optionalString ((stdenv.buildPlatform != stdenv.hostPlatform) && (stdenv.hostPlatform.emulatorAvailable buildPackages)) ''
-    # the replacement is the native conditional
-    substituteInPlace gdk-pixbuf-loader/Makefile \
-      --replace 'RUN_QUERY_LOADER_TEST = false' 'RUN_QUERY_LOADER_TEST = test -z "$(DESTDIR)"' \
+    # Fix pkg-config file Requires section.
+    # https://gitlab.gnome.org/GNOME/librsvg/-/issues/1150
+    substituteInPlace rsvg/meson.build \
+      --replace-fail 'requires: library_dependencies_sole,' 'requires: [cairo_dep, gio_dep, glib_dep, pixbuf_dep],'
   '';
 
-  # Not generated when cross compiling.
-  postInstall = let emulator = stdenv.hostPlatform.emulator buildPackages; in
-    lib.optionalString (stdenv.hostPlatform.emulatorAvailable buildPackages) ''
-      # Merge gdkpixbuf and librsvg loaders
-      cat ${lib.getLib gdk-pixbuf}/lib/gdk-pixbuf-2.0/2.10.0/loaders.cache $GDK_PIXBUF/loaders.cache > $GDK_PIXBUF/loaders.cache.tmp
-      mv $GDK_PIXBUF/loaders.cache.tmp $GDK_PIXBUF/loaders.cache
+  preCheck = ''
+    # Tests complain: Fontconfig error: No writable cache directories
+    export HOME=$TMPDIR
 
+    # https://gitlab.gnome.org/GNOME/librsvg/-/issues/258#note_251789
+    export XDG_DATA_DIRS=${shared-mime-info}/share:$XDG_DATA_DIRS
+  '';
+
+  postInstall =
+    let
+      emulator = stdenv.hostPlatform.emulator buildPackages;
+    in
+    # Not generated when cross compiling.
+    lib.optionalString (lib.systems.equals stdenv.buildPlatform stdenv.hostPlatform) ''
+      # Merge gdkpixbuf and librsvg loaders
+      GDK_PIXBUF=$out/${gdk-pixbuf.binaryDir}
+      cat ${lib.getLib gdk-pixbuf}/${gdk-pixbuf.binaryDir}/loaders.cache $GDK_PIXBUF/loaders.cache > $GDK_PIXBUF/loaders.cache.tmp
+      mv $GDK_PIXBUF/loaders.cache.tmp $GDK_PIXBUF/loaders.cache
+    ''
+    + lib.optionalString (stdenv.hostPlatform.emulatorAvailable buildPackages) ''
       installShellCompletion --cmd rsvg-convert \
         --bash <(${emulator} $out/bin/rsvg-convert --completion bash) \
         --fish <(${emulator} $out/bin/rsvg-convert --completion fish) \
@@ -179,19 +209,14 @@ stdenv.mkDerivation (finalAttrs: {
             "sh"
             "-c"
             ''
-              PATH=${lib.makeBinPath [
-                common-updater-scripts
-                jq
-                nix
-              ]}
-              # update-source-version does not allow updating to the same version so we need to clear it temporarily.
-              # Get the current version so that we can restore it later.
-              latestVersion=$(nix-instantiate --eval -A librsvg.version | jq --raw-output)
-              # Clear the version. Provide hash so that we do not need to do pointless TOFU.
-              # Needs to be a fake SRI hash that is non-zero, since u-s-v uses zero as a placeholder.
-              # Also cannot be here verbatim or u-s-v would be confused what to replace.
-              update-source-version librsvg 0 "sha256-${lib.fixedWidthString 44 "B" "="}" --source-key=cargoDeps > /dev/null
-              update-source-version librsvg "$latestVersion" --source-key=cargoDeps > /dev/null
+              PATH=${
+                lib.makeBinPath [
+                  common-updater-scripts
+                  jq
+                  nix
+                ]
+              }
+              update-source-version librsvg --ignore-same-version --source-key=cargoDeps.vendorStaging > /dev/null
             ''
           ];
           # Experimental feature: do not copy!
@@ -208,7 +233,8 @@ stdenv.mkDerivation (finalAttrs: {
         gimp
         imagemagick
         imlib2
-        vips;
+        vips
+        ;
       inherit (enlightenment) efl;
       inherit (xfce) xfwm4;
       ffmpeg = ffmpeg.override { withSvg = true; };
@@ -216,8 +242,8 @@ stdenv.mkDerivation (finalAttrs: {
   };
 
   meta = with lib; {
-    description = "A small library to render SVG images to Cairo surfaces";
-    homepage = "https://wiki.gnome.org/Projects/LibRsvg";
+    description = "Small library to render SVG images to Cairo surfaces";
+    homepage = "https://gitlab.gnome.org/GNOME/librsvg";
     license = licenses.lgpl2Plus;
     maintainers = teams.gnome.members;
     mainProgram = "rsvg-convert";

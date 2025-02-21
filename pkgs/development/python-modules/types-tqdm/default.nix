@@ -1,25 +1,28 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchPypi
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  pythonOlder,
+  fetchPypi,
+  setuptools,
+  types-requests,
 }:
 
 buildPythonPackage rec {
   pname = "types-tqdm";
-  version = "4.66.0.20240106";
+  version = "4.67.0.20241221";
   pyproject = true;
 
-  disabled = pythonOlder "3.7";
+  disabled = pythonOlder "3.8";
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-es9KreW6097XbrgpeD+ZYbHCGHlI6qbdGuhkTf+VqTg=";
+    pname = "types_tqdm";
+    inherit version;
+    hash = "sha256-5WBGYxBWkiOFq+ia6xivVhH0cerdeRigrX802EzUyMw=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
+
+  dependencies = [ types-requests ];
 
   # This package does not have tests.
   doCheck = false;

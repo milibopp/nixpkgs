@@ -2,19 +2,19 @@
 
 mkDerivation rec {
   pname = "leo-editor";
-  version = "6.7.6";
+  version = "6.8.3";
 
   src = fetchFromGitHub {
     owner = "leo-editor";
     repo = "leo-editor";
     rev = version;
-    sha256 = "sha256-AWno/LccMMXZ7Aw4FYQCJSoB3dRRONoT/iex0jPFng0=";
+    sha256 = "sha256-nK6JMR4XrxZxvLOAsYjuyHQo/sob+OLSk/8U3zZ/Iyo=";
   };
 
   dontBuild = true;
 
   nativeBuildInputs = [ wrapQtAppsHook makeWrapper python3 ];
-  propagatedBuildInputs = with python3.pkgs; [ pyqt5 docutils ];
+  propagatedBuildInputs = with python3.pkgs; [ pyqt6 docutils ];
 
   desktopItem = makeDesktopItem {
     name = "leo-editor";
